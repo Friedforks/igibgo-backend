@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: igibgo
+  datasource:
+    username: postgres
+    password: Hellochixiyu07!
+    url: jdbc:postgresql://igibgo.cloud:1000/igibgo?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+  mail:
+    host: smtp.qq.com
+    port: 587
+    username: 3344544482@qq.com
+    password: sttzewhrvvpwdaja
+    properties.mail.smtp:
+      auth: true
+      starttls:
+        enable: true
+        required: true
+  servlet:
+    multipart:
+      max-file-size: 5GB
+      max-request-size: 5GB
+
+server:
+  port: 8000
+  tomcat:
+    max-swallow-size: -1
+
+cos:
+  secretId:
+    AKIDUrF3d1B6mDOIxMVPYUCerqa6QIyWzjFb
+  secretKey:
+    OdeQwDF0YrwlKs6MXWIrCMK7h2DDzWpu
+  bucketName:
+    igibgo-bucket-1303865496
+  publicAccessUrl:
+    "https://igibgo-bucket-1303865496.cos.ap-shanghai.myqcloud.com/"
