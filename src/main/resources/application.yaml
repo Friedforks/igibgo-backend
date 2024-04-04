@@ -20,6 +20,9 @@ spring:
       max-file-size: 5GB
       max-request-size: 5GB
 
+  jpa:
+    open-in-view: false
+
 server:
   port: 8000
   tomcat:

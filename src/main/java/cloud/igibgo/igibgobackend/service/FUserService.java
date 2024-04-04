@@ -48,7 +48,7 @@ public class FUserService {
                             ". Please copy and paste the authentication code to the registration page in 5 minutes before it expire.");
 
             //2. Save to redis
-            redisTemplate.opsForValue().set(email, password + authCode, 5, TimeUnit.MINUTES);
+            redisTemplate.opsForValue().set("register"+email, password + authCode, 5, TimeUnit.MINUTES);
             return new APIResponse<>(ResponseCodes.SUCCESS, "Email sent successfully", null);
         } catch (Exception e) {
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
@@ -60,7 +60,7 @@ public class FUserService {
                                              String password,
                                              MultipartFile avatar) {
         // Check 1: check the auth code
-        String redisValue = redisTemplate.opsForValue().get(email);// redis value contains password + auth code
+        String redisValue = redisTemplate.opsForValue().get("register"+email);// redis value contains password + auth code
         if (redisValue == null) {
             return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Auth code expired", null);
         }
@@ -68,7 +68,7 @@ public class FUserService {
             return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Auth code incorrect", null);
         }
         //1. Delete the auth code
-        redisTemplate.delete(email);
+        redisTemplate.delete("register"+email);
         //2. Upload avatar
         String avatarFileName = UUID.randomUUID().toString();
         try {
@@ -80,7 +80,9 @@ public class FUserService {
             if (!deletion) {
                 log.error("Failed to delete temp file: " + tempAvatarFile);
             }
-            //3. Save to db
+            // 3. encrypt password
+            password = PasswordUtil.hashPassword(password);
+            //4. Save to db
             if (StringUtil.isContainNumber(password)) {// not teacher
                 fUserMapper.save(new FUser(false, email, password));
             } else {// is teacher
@@ -95,5 +97,33 @@ public class FUserService {
         } catch (Exception e) {
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
+    }
+
+    public APIResponse<String> userLogin(String email, String password) {
+        FUser fUser = fUserMapper.findByEmail(email);
+        // Check 1: user not found
+        if (fUser == null) {
+            return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null);
+        }
+        // Check 2: password incorrect
+        if (!fUser.password.equals(PasswordUtil.hashPassword(password))) {
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Password incorrect", null);
+        }
+        // 1. Find if token is already generated in redis
+        String token = redisTemplate.opsForValue().get(email);
+        if (token == null) {
+            // 2. Generate token
+            token = UUID.randomUUID().toString();
+            // 3. Save to redis
+            redisTemplate.opsForValue().set(email, token, 1, TimeUnit.DAYS);
+            redisTemplate.opsForValue().set(token, email, 1, TimeUnit.DAYS);
+        }
+        else{
+            // 4. Update token expiration time
+            redisTemplate.expire(email, 1, TimeUnit.DAYS);
+            redisTemplate.expire(token, 1, TimeUnit.DAYS);
+        }
+        // return token
+        return new APIResponse<>(ResponseCodes.SUCCESS, "Login successfully ", token);
     }
 }
