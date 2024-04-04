@@ -10,11 +10,14 @@ import java.time.ZoneId;
 public class NoteReply {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    Long noteReplyId;
-    @ManyToOne(fetch = FetchType.LAZY)
+    public Long noteReplyId;
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "note_id")
-    Note note;
-    String replyContent;
-    LocalDateTime replyDate = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
-    Long author;// fk
+    public Note note;
+    public String replyContent;
+    public LocalDateTime replyDate = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "author")
+    public FUser author;
 }

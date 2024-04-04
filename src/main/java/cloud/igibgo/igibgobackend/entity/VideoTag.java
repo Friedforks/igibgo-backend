@@ -1,14 +1,15 @@
 package cloud.igibgo.igibgobackend.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "video_tag")
 public class VideoTag {
     @Id
-    Long videoTagId;
-    String videoId;// fk
-    String tagText;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    public Long videoTagId;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "video_id")
+    public Video video;
+    public String tagText;
 }

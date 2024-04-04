@@ -7,9 +7,9 @@ import jakarta.persistence.*;
 public class NoteTag {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    Long noteTagId;
-    @ManyToOne(fetch = FetchType.LAZY)
+    public Long noteTagId;
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "note_id")
-    Note note;// fk
-    String tagText;
+    public Note note;// fk
+    public String tagText;
 }

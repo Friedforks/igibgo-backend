@@ -1,15 +1,18 @@
 package cloud.igibgo.igibgobackend.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "post_reply")
 public class PostReply {
     @Id
-    Long postReplyId;
-    String postId;
-    String replyContent;
-    Long author;
+public     Long postReplyId;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "post_id")
+public     Post post;
+public     String replyContent;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "author")
+public     FUser author;
 }

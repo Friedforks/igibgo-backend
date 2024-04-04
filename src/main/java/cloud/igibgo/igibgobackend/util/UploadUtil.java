@@ -191,4 +191,19 @@ public class UploadUtil {
         }
         return publicAccessUrl + "/" + path + fileName;
     }
+
+    /**
+     * 删除文件
+     * @param key examplebucket-1250000000.cos.ap-guangzhou.myqcloud.com/doc/picture.jpg 中，对象键为 doc/picture.jpg
+     * @throws CosServiceException 上传失败
+     * @throws CosClientException 上传失败
+     */
+    public static void deleteObject(String key) throws CosServiceException, CosClientException{
+        // 调用 COS 接口之前必须保证本进程存在一个 COSClient 实例，如果没有则创建
+        // 详细代码参见本页：简单操作 -> 创建 COSClient
+        COSClient cosClient = createCOSClient();
+        cosClient.deleteObject(bucketName, key);
+        // 确认本进程不再使用 cosClient 实例之后，关闭即可
+        cosClient.shutdown();
+    }
 }

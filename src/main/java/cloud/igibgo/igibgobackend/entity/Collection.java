@@ -9,7 +9,7 @@ public class Collection {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     String collectionId;
 
-    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JoinColumn(name = "author")
     FUser fUser;
 }

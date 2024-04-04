@@ -8,8 +8,15 @@ public class NoteBookmark {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long bookmarkNoteId;
-    String noteId;
-    long userId;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "note_id")
+    Note note;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_id")
+    FUser author;
+
     String folder;
 }
 

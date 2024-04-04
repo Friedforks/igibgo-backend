@@ -7,16 +7,16 @@ import jakarta.persistence.*;
 public class FUser {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long userId;
-    String avatarUrl;
-    boolean isTeacher;
-    String email;
-    int subscribeCount;
-    String password;
-    String token;
+    public Long userId;
+    public String avatarUrl;
+    public boolean isTeacher;
+    public String email;
+    public int subscribeCount;
+    public String password;
+    public String token;
 
     public FUser(boolean isTeacher,
-                 String email, String password ) {
+                 String email, String password) {
         this.isTeacher = isTeacher;
         this.email = email;
         this.subscribeCount = 0;

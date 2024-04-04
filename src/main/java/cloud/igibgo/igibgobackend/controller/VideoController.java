@@ -3,7 +3,8 @@ package cloud.igibgo.igibgobackend.controller;
 import cloud.igibgo.igibgobackend.entity.APIResponse;
 import cloud.igibgo.igibgobackend.entity.Note;
 import cloud.igibgo.igibgobackend.entity.ResponseCodes;
-import cloud.igibgo.igibgobackend.service.NoteService;
+import cloud.igibgo.igibgobackend.entity.Video;
+import cloud.igibgo.igibgobackend.service.VideoService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
@@ -20,24 +21,24 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/note")
-public class NoteController {
+@RequestMapping("/video")
+public class VideoController {
     @Resource
-    private NoteService noteService;
+    private VideoService videoService;
 
-    // note viewer side
+    // video viewer side
 
     /**
-     * get notes in order
+     * get videos in order
      *
      * @param page      page number
      * @param size      page size
      * @param orderBy   order by which field
      * @param ascending (boolean) ascending or descending
-     * @return page of notes
+     * @return page of videos
      */
     @GetMapping("/get/order")
-    APIResponse<Page<Note>> getNotesInOrder(int page, int size, String orderBy, boolean ascending) {
+    APIResponse<Page<Video>> getVideosInOrder(int page, int size, String orderBy, boolean ascending) {
         try {
             // Check 1: orderBy cannot be null
             if (orderBy == null) {
@@ -52,59 +53,67 @@ public class NoteController {
             }
             // 2. create a page request
             PageRequest pageRequest = PageRequest.of(page, size, Sort.by(direction, orderBy));
-            // 3. get notes in order
-            Page<Note> notes = noteService.getNotesInOrder(pageRequest);
-            return new APIResponse<>(ResponseCodes.SUCCESS, null, notes);
+            // 3. get videos in order
+            Page<Video> videos = videoService.getVideosInOrder(pageRequest);
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, videos);
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
-        } catch (Exception e) {
-            log.error("Unhandled error: " + e.getMessage(), e);
+        }
+        catch (Exception e) {
+            log.error("Internal server error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
-
 
     /**
-     * get notes by tags
+     * get videos by tags
      *
      * @param tags list of tags
-     * @return list of notes that have at least one of the tags
+     * @return list of videos that have at least one of the tags
      */
     @GetMapping("/get/tags")
-    APIResponse<List<Note>> getNoteByTags(List<String> tags) {
+    APIResponse<List<Video>> getVideosByTags(List<String> tags) {
         try {
-            return new APIResponse<>(ResponseCodes.SUCCESS, null, noteService.getNotesByTags(tags));
+            // Check 1: tags cannot be null
+            if (tags == null) {
+                return new APIResponse<>(ResponseCodes.BAD_REQUEST, "tags cannot be null", null);
+            }
+            // 1. get videos by tags
+            List<Video> videos = videoService.getVideosByTags(tags);
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, videos);
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
-        } catch (Exception e) {
-            log.error("Unhandled error: " + e.getMessage(), e);
+        }
+        catch (Exception e) {
+            log.error("Internal server error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
 
-    @GetMapping("/get/noteId")
-    APIResponse<Note> getNoteWithRepliesTags(String noteId) {
+    @GetMapping("/get/videoId")
+    APIResponse<Video> getVideoWithRepliesTags(String videoId) {
         try {
-            if (noteId == null) {
-                return new APIResponse<>(ResponseCodes.BAD_REQUEST, "noteId cannot be null", null);
+            if(videoId == null){
+                return new APIResponse<>(ResponseCodes.BAD_REQUEST, "videoId cannot be null", null);
             }
-            Note note = noteService.getNoteByNoteId(noteId);
-            return new APIResponse<>(ResponseCodes.SUCCESS, null, note);
+            Video video= videoService.getVideoByVideoId(videoId);
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, video);
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
-        } catch (Exception e) {
-            log.error("Unhandled error: " + e.getMessage(), e);
+        }
+        catch (Exception e) {
+            log.error("Internal server error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
 
     @GetMapping("/like/videoId")
-    APIResponse<String> likeNote(String noteId) {
+    APIResponse<String> likeVideo(String videoId) {
         try {
-            noteService.likeNote(noteId);
+            videoService.likeVideo(videoId);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
         } catch (IllegalArgumentException e) {
             log.error("Illegal argument: " + e.getMessage(), e);
@@ -112,33 +121,35 @@ public class NoteController {
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
-        } catch (Exception e) {
-            log.error("Unhandled error: " + e.getMessage(), e);
+        }
+        catch (Exception e) {
+            log.error("Internal server error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
 
     @GetMapping("/reply")
-    APIResponse<String> replyNote(String noteId, String content,Long authorId) {
+    APIResponse<Void> replyVideo(String videoId, String replyContent, Long authorId) {
         try {
-            noteService.replyNote(noteId, content, authorId);
-            return new APIResponse<>(ResponseCodes.SUCCESS, null, "Replied to note");
+            videoService.replyVideo(videoId, replyContent, authorId);
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
         } catch (IllegalArgumentException e) {
             log.error("Illegal argument: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
-        } catch (Exception e) {
-            log.error("Unhandled error: " + e.getMessage(), e);
+        }
+        catch (Exception e) {
+            log.error("Internal server error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
 
     @GetMapping("/delete/reply")
-    APIResponse<Void> deleteReply( Long replyId, Long authorId) {
+    APIResponse<String> deleteReply(Long replyId, Long authorId) {
         try {
-            noteService.deleteReply(replyId,authorId);
+            videoService.deleteReply(replyId, authorId);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
         } catch (IllegalArgumentException e) {
             log.error("Illegal argument: " + e.getMessage(), e);
@@ -146,23 +157,23 @@ public class NoteController {
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
-        } catch (Exception e) {
-            log.error("Unhandled error: " + e.getMessage(), e);
+        }
+        catch (Exception e) {
+            log.error("Internal server error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
 
     /**
-     * bookmark note
-     *
-     * @param noteId note to be saved
-     * @param userId user who saves the note
+     * bookmark video
+     * @param videoId video id to be saved
+     * @param userId user who saves the video
      * @return no response
      */
     @GetMapping("/bookmark")
-    APIResponse<String> bookmarkNote(String noteId, Long userId) {
+    APIResponse<String> bookmarkVideo(String videoId, Long userId) {
         try {
-            noteService.bookmarkNote(noteId, userId);
+            videoService.bookmarkVideo(videoId, userId);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
         } catch (IllegalArgumentException e) {
             log.error("Illegal argument: " + e.getMessage(), e);
@@ -170,26 +181,35 @@ public class NoteController {
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
-        } catch (Exception e) {
-            log.error("Unhandled error: " + e.getMessage(), e);
+        }
+        catch (Exception e) {
+            log.error("Internal server error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
 
-    // note manager side
+    // video manager side
 
     /**
-     * upload note
-     *
-     * @param note     note
+     * upload video
+     * @param video video file (mp4, mov, flv)
+     * @param videoCover video cover file (jpg, png)
      * @param authorId author
-     * @return response
+     * @param collectionId collection
+     * @param title title
+     * @return no response
      */
     @GetMapping("/upload")
-    APIResponse<String> uploadNote(MultipartFile note, Long authorId, Long collectionId, String title, List<String> tags) {
+    APIResponse<String> uploadVideo(MultipartFile video,
+                                    MultipartFile videoCover,
+                                    Long authorId,
+                                    Long collectionId,
+                                    String title,
+                                    List<String> tags) {
         try {
-            noteService.uploadNote(note, authorId, collectionId, title, tags);
-            return new APIResponse<>(ResponseCodes.SUCCESS, null, "Note uploaded");
+            // 1. upload video
+            videoService.uploadVideo(video, videoCover, authorId, collectionId, title,tags);
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
         } catch (DataAccessException e) {
             log.error("Database query error", e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
@@ -206,18 +226,19 @@ public class NoteController {
     }
 
     @GetMapping("/delete")
-    APIResponse<String> deleteNote(Long authorId, String noteId) {
+    APIResponse<String> deleteVideo(Long authorId,String videoId) {
         try {
-            noteService.deleteNote(authorId, noteId);
-            return new APIResponse<>(ResponseCodes.SUCCESS, null, "Note deleted");
+            videoService.deleteVideo(authorId, videoId);
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
         } catch (IllegalArgumentException e) {
             log.error("Illegal argument: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
-        } catch (Exception e) {
-            log.error("Unhandled error: " + e.getMessage(), e);
+        }
+        catch (Exception e) {
+            log.error("Internal server error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
