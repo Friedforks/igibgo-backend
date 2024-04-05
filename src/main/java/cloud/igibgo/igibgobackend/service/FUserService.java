@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -29,38 +30,55 @@ public class FUserService {
     @Resource
     RedisTemplate<String, String> redisTemplate;
 
+    @Resource
+    MailUtil mailUtil;
+
     public APIResponse<String> userRegister1(String email, String password) {
         //Check 1: not Huili email
         if (!email.contains("@huilieducation.cn")) {
+            log.info("User email: "+email+" try to register but failed since it is not Huili email");
             return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Email must be @huilieducation.cn", null);
         }
 
         //Check 2: check if user is already registered
         if (fUserMapper.findByEmail(email) != null) {
+            log.info("User email: "+email+" try to register but failed since it is already registered");
             return new APIResponse<>(ResponseCodes.CONFLICT, "User already registered", null);
         }
 
         try {
             //1. Send email auth code
             String authCode = PasswordUtil.generateAuthCode();
-            MailUtil.sendMail(email, "IGIBGO authentication code",
+            mailUtil.sendMail(email, "IGIBGO authentication code",
                     "Your authentication code is: " + authCode +
                             ". Please copy and paste the authentication code to the registration page in 5 minutes before it expire.");
 
             //2. Save to redis
-            redisTemplate.opsForValue().set("register"+email, password + authCode, 5, TimeUnit.MINUTES);
+            redisTemplate.opsForValue().set("register" + email, password + authCode, 5, TimeUnit.MINUTES);
             return new APIResponse<>(ResponseCodes.SUCCESS, "Email sent successfully", null);
         } catch (Exception e) {
+            log.error("Failed to send email or save to redis: ", e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
-
-    public APIResponse<String> userRegister2(String authCode,
+    @Resource
+    UploadUtil uploadUtil;
+    /**
+     * User register 2
+     * @param username username
+     * @param authCode email auth code
+     * @param email    Huili email
+     * @param password password
+     * @param avatar   avatar file
+     * @return token
+     */
+    public APIResponse<String> userRegister2(String username,
+                                             String authCode,
                                              String email,
                                              String password,
                                              MultipartFile avatar) {
         // Check 1: check the auth code
-        String redisValue = redisTemplate.opsForValue().get("register"+email);// redis value contains password + auth code
+        String redisValue = redisTemplate.opsForValue().get("register" + email);// redis value contains password + auth code
         if (redisValue == null) {
             return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Auth code expired", null);
         }
@@ -68,27 +86,39 @@ public class FUserService {
             return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Auth code incorrect", null);
         }
         //1. Delete the auth code
-        redisTemplate.delete("register"+email);
+        redisTemplate.delete("register" + email);
         //2. Upload avatar
-        String avatarFileName = UUID.randomUUID().toString();
+        String avatarFileName = UUID.randomUUID()+ Objects.requireNonNull(avatar.getOriginalFilename()).substring(avatar.getOriginalFilename().lastIndexOf("."));
         try {
             Path tempAvatarFile = Files.createTempFile(null, avatarFileName);
             avatar.transferTo(tempAvatarFile);
             // time-consuming
-            String avatarUrl = UploadUtil.upload(tempAvatarFile.toFile(), avatarFileName, "avatar/");
-            boolean deletion = tempAvatarFile.toFile().delete();
-            if (!deletion) {
-                log.error("Failed to delete temp file: " + tempAvatarFile);
-            }
+            String avatarUrl = uploadUtil.upload(tempAvatarFile.toFile(), avatarFileName, "avatar/");
             // 3. encrypt password
             password = PasswordUtil.hashPassword(password);
             //4. Save to db
             if (StringUtil.isContainNumber(password)) {// not teacher
-                fUserMapper.save(new FUser(false, email, password));
+                fUserMapper.save(new FUser(
+                        username,
+                        avatarUrl,
+                        false,
+                        email,
+                        password
+                ));
             } else {// is teacher
-                fUserMapper.save(new FUser(true, email, password));
+                fUserMapper.save(new FUser(
+                        username,
+                        avatarUrl,
+                        true,
+                        email,
+                        password
+                ));
             }
-            return new APIResponse<>(ResponseCodes.SUCCESS, "User registered successfully", avatarUrl);
+            //5. generate token
+            String token = UUID.randomUUID().toString();
+            redisTemplate.opsForValue().set(email, token);
+            redisTemplate.opsForValue().set(token, email);
+            return new APIResponse<>(ResponseCodes.SUCCESS, "User registered successfully", token);
         } catch (IOException e) {
             log.error("Failed to create temp file: ", e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
@@ -117,8 +147,7 @@ public class FUserService {
             // 3. Save to redis
             redisTemplate.opsForValue().set(email, token, 1, TimeUnit.DAYS);
             redisTemplate.opsForValue().set(token, email, 1, TimeUnit.DAYS);
-        }
-        else{
+        } else {
             // 4. Update token expiration time
             redisTemplate.expire(email, 1, TimeUnit.DAYS);
             redisTemplate.expire(token, 1, TimeUnit.DAYS);

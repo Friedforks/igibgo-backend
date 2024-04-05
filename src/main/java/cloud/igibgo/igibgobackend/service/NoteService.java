@@ -48,6 +48,9 @@ public class NoteService {
     @Resource
     private NoteTagMapper noteTagMapper;
 
+    @Resource
+    private UploadUtil uploadUtil;
+
     // TODO Optimize this method to make save to COS and db in parallel
     public void uploadNote(MultipartFile note, Long authorId, Long collectionId, String title,List<String> tags) throws IOException {
         Optional<FUser> author = fUserMapper.findById(authorId);
@@ -75,7 +78,7 @@ public class NoteService {
             // 2. upload note to COS
             String generatedNoteId=UUID.randomUUID().toString();
             String newFilename = generatedNoteId+ "." + suffix;
-            String url = UploadUtil.upload(noteFile, newFilename, "note/");
+            String url = uploadUtil.upload(noteFile, newFilename, "note/");
             // 3. get author instance by id
             // 3. fetch collection (if collection id is not null)
             Collection c = collection.get();
@@ -170,7 +173,7 @@ public class NoteService {
         // E.g. public accessurl= https://igibgo-1305786880.cos.ap-guangzhou.myqcloud.com/note/1b3e7b7b.pdf
         // and file path in COS= note/1b3e7b7b.pdf
         String filePath = "note/" + note.noteUrl.substring(note.noteUrl.indexOf("/"));
-        UploadUtil.deleteObject(filePath);
+        uploadUtil.deleteObject(filePath);
         // 2. delete the note from db
         noteMapper.deleteById(noteId);
     }

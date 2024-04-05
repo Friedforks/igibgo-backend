@@ -20,8 +20,12 @@ public class FUserController {
     }
 
     @PostMapping("/register2")
-    public APIResponse<String> userRegister2(String authCode, String email, String password, MultipartFile avatar) {
-        return fUserService.userRegister2(authCode, email, password,avatar);
+    public APIResponse<String> userRegister2(String username,
+                                             String authCode,
+                                             String email,
+                                             String password,
+                                             MultipartFile avatar) {
+        return fUserService.userRegister2(username,authCode, email, password,avatar);
     }
 
     /**

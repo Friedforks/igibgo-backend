@@ -17,6 +17,7 @@ import com.qcloud.cos.transfer.TransferManagerConfiguration;
 import com.qcloud.cos.transfer.Upload;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.nio.file.FileStore;
@@ -26,6 +27,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 @Slf4j
+@Component
 public class UploadUtil {
 
 
@@ -33,14 +35,14 @@ public class UploadUtil {
     // SECRETID 和 SECRETKEY 请登录访问管理控制台 https://console.cloud.tencent.com/cam/capi 进行查看和管理
     //用户的 SecretId，建议使用子账号密钥，授权遵循最小权限指引，降低使用风险。子账号密钥获取可参见 https://cloud.tencent.com/document/product/598/37140
     @Value("${cos.secretId}")
-    private static String secretId;
+    private  String secretId;
 
     //用户的 SecretKey，建议使用子账号密钥，授权遵循最小权限指引，降低使用风险。子账号密钥获取可参见 https://cloud.tencent.com/document/product/598/37140
     @Value("${cos.secretKey}")
-    private static String secretKey;
+    private  String secretKey;
 
     // 创建 COSClient 实例，这个实例用来后续调用请求
-    static COSClient createCOSClient() {
+     COSClient createCOSClient() {
         COSCredentials cred = new BasicCOSCredentials(secretId, secretKey);
 
 
@@ -76,7 +78,7 @@ public class UploadUtil {
     }
 
     // 创建 TransferManager 实例，这个实例用来后续调用高级接口
-    static TransferManager createTransferManager() {
+     TransferManager createTransferManager() {
         // 创建一个 COSClient 实例，这是访问 COS 服务的基础实例。
         // 详细代码参见本页: 简单操作 -> 创建 COSClient
         COSClient cosClient = createCOSClient();
@@ -101,13 +103,13 @@ public class UploadUtil {
         return transferManager;
     }
 
-    static void shutdownTransferManager(TransferManager transferManager) {
+     void shutdownTransferManager(TransferManager transferManager) {
         // 指定参数为 true, 则同时会关闭 transferManager 内部的 COSClient 实例。
         // 指定参数为 false, 则不会关闭 transferManager 内部的 COSClient 实例。
         transferManager.shutdownNow(true);
     }
 
-    private static boolean checkFileSize(File file) {
+    private  boolean checkFileSize(File file) {
         long fileSizeInBytes = file.length();
         // if greater than 5G
         return fileSizeInBytes <= 5L * 1024 * 1024 * 1024;
@@ -115,10 +117,10 @@ public class UploadUtil {
 
     // 存储桶的命名格式为 BucketName-APPID，此处填写的存储桶名称必须为此格式
     @Value("${cos.bucketName}")
-    private static String bucketName;
+    private  String bucketName;
 
     @Value("${cos.publicAccessUrl}")
-    private static String publicAccessUrl;
+    private  String publicAccessUrl;
 
     /**
      * 上传文件
@@ -129,7 +131,7 @@ public class UploadUtil {
      * @throws CosServiceException 上传失败
      * @throws CosClientException  上传失败
      */
-    public static String upload(File file, String fileName, String path) throws IllegalArgumentException {
+    public  String upload(File file, String fileName, String path) throws IllegalArgumentException {
         // 检查文件大小
         if (!checkFileSize(file)) {
             log.error("File size exceeds 5G");
@@ -141,10 +143,8 @@ public class UploadUtil {
         TransferManager transferManager = createTransferManager();
 
         // 本地文件路径
-        String localFilePath = "/tmp-upload/" + fileName;
-        File localFile = new File(localFilePath);
 
-        PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, path + fileName, localFile);
+        PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, path + fileName, file);
 
         // 设置存储类型（如有需要，不需要请忽略此行代码）, 默认是标准(Standard), 低频(standard_ia)
         // 更多存储类型请参见 https://cloud.tencent.com/document/product/436/33417
@@ -185,7 +185,7 @@ public class UploadUtil {
         shutdownTransferManager(transferManager);
 
         // 删除本地文件
-        boolean delete = localFile.delete();
+        boolean delete = file.delete();
         if (!delete) {
             log.error("Failed to delete local file");
         }
@@ -198,7 +198,7 @@ public class UploadUtil {
      * @throws CosServiceException 上传失败
      * @throws CosClientException 上传失败
      */
-    public static void deleteObject(String key) throws CosServiceException, CosClientException{
+    public  void deleteObject(String key) throws CosServiceException, CosClientException{
         // 调用 COS 接口之前必须保证本进程存在一个 COSClient 实例，如果没有则创建
         // 详细代码参见本页：简单操作 -> 创建 COSClient
         COSClient cosClient = createCOSClient();

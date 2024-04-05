@@ -8,6 +8,7 @@ public class FUser {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     public Long userId;
+    public String username;
     public String avatarUrl;
     public boolean isTeacher;
     public String email;
@@ -15,12 +16,13 @@ public class FUser {
     public String password;
     public String token;
 
-    public FUser(boolean isTeacher,
-                 String email, String password) {
+    public FUser(String username, String avatarUrl, boolean isTeacher, String email,String password) {
+        this.username = username;
+        this.avatarUrl = avatarUrl;
         this.isTeacher = isTeacher;
         this.email = email;
-        this.subscribeCount = 0;
         this.password = password;
+        subscribeCount=0;
     }
 
     public FUser() {

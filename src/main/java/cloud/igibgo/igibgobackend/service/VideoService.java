@@ -46,6 +46,8 @@ public class VideoService {
 
     @Resource
     private VideoTagMapper videoTagMapper;
+    @Resource
+    private UploadUtil uploadUtil;
 
     /**
      * TODO Optimize this method to make video/videoCover save to COS and db in parallel
@@ -81,13 +83,13 @@ public class VideoService {
             // 2. upload video to COS
             String generatedVideoId = UUID.randomUUID().toString();
             String newFilename = generatedVideoId + "." + suffix;
-            String url = UploadUtil.upload(videoFile, newFilename, "video/");
+            String url = uploadUtil.upload(videoFile, newFilename, "video/");
             // 3. convert video cover to file
             File coverFile = new File("video-cover/" + originalFilename);
             videoCover.transferTo(coverFile);
             // 4. upload video cover to COS
             String newCoverFilename = generatedVideoId + "." + suffix;
-            String coverUrl = UploadUtil.upload(coverFile, newCoverFilename, "video-cover/");
+            String coverUrl = uploadUtil.upload(coverFile, newCoverFilename, "video-cover/");
             // 5. fetch collection (if collection id is not null)
             Collection c = collection.get();
             Video videoInstance = new Video();
@@ -179,11 +181,11 @@ public class VideoService {
         // 1. delete the video from COS
         // 1.1 convert public access url to file path in COS
         String videoPath = "video/" + video.videoUrl.substring(video.videoUrl.lastIndexOf("/"));
-        UploadUtil.deleteObject(videoPath);
+        uploadUtil.deleteObject(videoPath);
         // 2. delete the video cover from COS
         // 2.1 convert public access url to file path in COS
         String videoCoverPath = "video-cover/" + video.videoCoverUrl.substring(video.videoCoverUrl.lastIndexOf("/"));
-        UploadUtil.deleteObject(videoCoverPath);
+        uploadUtil.deleteObject(videoCoverPath);
         // 3. delete the video from db
         videoMapper.delete(video);
     }

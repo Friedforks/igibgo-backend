@@ -1,6 +1,10 @@
 spring:
   application:
     name: igibgo
+  data:
+    redis:
+      host: igibgo.cloud
+      port: 1001
   datasource:
     username: postgres
     password: Hellochixiyu07!
@@ -36,4 +40,4 @@ cos:
   bucketName:
     igibgo-bucket-1303865496
   publicAccessUrl:
-    "https://igibgo-bucket-1303865496.cos.ap-shanghai.myqcloud.com/"
+    "https://igibgo-bucket-1303865496.cos.ap-shanghai.myqcloud.com"
