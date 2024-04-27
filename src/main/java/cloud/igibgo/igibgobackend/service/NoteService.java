@@ -5,7 +5,9 @@ import cloud.igibgo.igibgobackend.entity.Collection;
 import cloud.igibgo.igibgobackend.mapper.*;
 import cloud.igibgo.igibgobackend.util.UploadUtil;
 import jakarta.annotation.Resource;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.bouncycastle.its.asn1.HashedData;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -13,6 +15,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
 @Slf4j
@@ -21,6 +25,7 @@ public class NoteService {
     @Resource
     private NoteMapper noteMapper;
 
+    @Transactional
     public Page<Note> getNotesInOrder(PageRequest pageRequest) {
         return noteMapper.findAll(pageRequest);
     }
@@ -29,14 +34,15 @@ public class NoteService {
      * O(NlogM) where N is the number of notes and M is the number of tags
      *
      * @param tags list of tags
-     * @return list of notes that have at least one of the tags
+     * @return set of notes that have at least one of the tags
      */
-    public List<Note> getNotesByTags(List<String> tags) {
+    public Set<Note> getNotesByTags(List<String> tags) {
         Set<Note> notes = new HashSet<>();
         for (String tag : tags) {
-            notes.addAll(noteMapper.findAllByTag(tag));
+            List<Note> notesLinkedWithTag = noteMapper.findAllByTag(tag);
+            notes.addAll(notesLinkedWithTag);
         }
-        return notes.stream().toList();
+        return notes;
     }
 
     @Resource
@@ -69,18 +75,18 @@ public class NoteService {
             String originalFilename = note.getOriginalFilename();
             assert originalFilename != null;
             String suffix = originalFilename.substring(originalFilename.lastIndexOf(".") + 1);
-            if (!suffix.equalsIgnoreCase("pdf") && !suffix.equalsIgnoreCase("md") && !suffix.equalsIgnoreCase("docx")) {
+            if (!suffix.equalsIgnoreCase("pdf")) {// only support pdf
                 throw new IllegalArgumentException("File type not supported, please upload notes in PDF, MD or DOCX format");
             }
-            // 1. convert note to file
-            File noteFile = new File("notes/" + originalFilename);
-            note.transferTo(noteFile);
-            // 2. upload note to COS
+            // 1. Generate new file name
             String generatedNoteId=UUID.randomUUID().toString();
             String newFilename = generatedNoteId+ "." + suffix;
-            String url = uploadUtil.upload(noteFile, newFilename, "note/");
-            // 3. get author instance by id
-            // 3. fetch collection (if collection id is not null)
+            // 2. create the note folder if empty
+            Path tmpNoteFile = Files.createTempFile(null, newFilename);
+            note.transferTo(tmpNoteFile);
+            // 3. upload note to COS
+            String url = uploadUtil.upload(tmpNoteFile.toFile(), newFilename, "note/");
+            // 4. fetch collection (if collection id is not null)
             Collection c = collection.get();
             Note noteInstance = new Note();
             noteInstance.noteId= generatedNoteId;
@@ -96,7 +102,7 @@ public class NoteService {
                 NoteTag noteTag = new NoteTag();
                 noteTag.note = noteInstance;
                 noteTag.tagText = tag;
-                noteTags.add(noteTag);
+                noteTagMapper.save(noteTag);
             }
             noteTagMapper.saveAll(noteTags);
         } else {
@@ -132,6 +138,10 @@ public class NoteService {
         return note;
     }
 
+    public List<Note> getNotesByTitle(String title){
+        return noteMapper.findAllByTitle(title);
+    }
+
     public void bookmarkNote(String noteId, Long userId) {
         // Check 1: if the user exists
         if (fUserMapper.existsById(userId)) {
@@ -149,6 +159,13 @@ public class NoteService {
         } else {
             throw new IllegalArgumentException("User not found");
         }
+    }
+
+
+
+    public List<String> getAllTags(){
+        // fetch all distinct tag content from db
+        return noteMapper.findDistinctTags();
     }
 
     public void deleteNote(Long author, String noteId) {

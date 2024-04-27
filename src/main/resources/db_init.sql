@@ -13,7 +13,8 @@ create table f_user
 create table collection
 (
     collection_id bigserial primary key not null,
-    author        int references f_user (user_id) on delete cascade
+    author        int references f_user (user_id) on delete cascade,
+    collection_name text not null
 );
 
 create table note

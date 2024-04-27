@@ -18,16 +18,13 @@ public class TokenAuthenticationInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         if(request.getMethod().equalsIgnoreCase("OPTIONS")){
-            log.info("Returned OPTIONS");
             return true;
         }
         // log the path of the request
         String path=request.getRequestURL().toString();
-        log.debug("Login interface intercepted, path: {}",path);
 
         // get the token from the request header
         String token=request.getHeader("token");
-        log.debug("Starting login verification: token: {}",token);
 
         // if the token is empty, return false
         if(token==null||token.isEmpty()){
@@ -43,7 +40,6 @@ public class TokenAuthenticationInterceptor implements HandlerInterceptor {
             return false;
         }
         else{
-            log.info("Successfully logged in: {}",s);
             return true;
         }
     }

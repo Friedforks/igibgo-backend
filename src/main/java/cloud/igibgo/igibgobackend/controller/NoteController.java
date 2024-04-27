@@ -1,8 +1,10 @@
 package cloud.igibgo.igibgobackend.controller;
 
 import cloud.igibgo.igibgobackend.entity.APIResponse;
+import cloud.igibgo.igibgobackend.entity.Collection;
 import cloud.igibgo.igibgobackend.entity.Note;
 import cloud.igibgo.igibgobackend.entity.ResponseCodes;
+import cloud.igibgo.igibgobackend.mapper.NoteMapper;
 import cloud.igibgo.igibgobackend.service.NoteService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -10,13 +12,13 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @RestController
@@ -25,7 +27,15 @@ public class NoteController {
     @Resource
     private NoteService noteService;
 
+    @Resource
+    private NoteMapper noteMapper;
+
     // note viewer side
+
+    @GetMapping("/get/all")
+    APIResponse<List<Note>> getAllNotes(){
+        return new APIResponse<>(ResponseCodes.SUCCESS, null, noteMapper.findAll());
+    }
 
     /**
      * get notes in order
@@ -71,10 +81,11 @@ public class NoteController {
      * @param tags list of tags
      * @return list of notes that have at least one of the tags
      */
-    @GetMapping("/get/tags")
-    APIResponse<List<Note>> getNoteByTags(List<String> tags) {
+    @PostMapping("/get/tags")
+    APIResponse<Set<Note>> getNoteByTags(String tags) {
         try {
-            return new APIResponse<>(ResponseCodes.SUCCESS, null, noteService.getNotesByTags(tags));
+            List<String> tagList= Arrays.asList(tags.split(","));
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, noteService.getNotesByTags(tagList));
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
@@ -83,6 +94,37 @@ public class NoteController {
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
+
+    @GetMapping("/get/allTags")
+    APIResponse<List<String>> getAllTags() {
+        try {
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, noteService.getAllTags());
+        } catch (DataAccessException e) {
+            log.error("Database query error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
+        } catch (Exception e) {
+            log.error("Unhandled error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
+        }
+    }
+
+    @GetMapping("/get/title")
+    APIResponse<List<Note>> getNoteByTitle(String title) {
+        try {
+            if (title == null) {
+                return new APIResponse<>(ResponseCodes.BAD_REQUEST, "title cannot be null", null);
+            }
+            List<Note> notes = noteService.getNotesByTitle(title);
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, notes);
+        } catch (DataAccessException e) {
+            log.error("Database query error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
+        } catch (Exception e) {
+            log.error("Unhandled error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
+        }
+    }
+
 
     @GetMapping("/get/noteId")
     APIResponse<Note> getNoteWithRepliesTags(String noteId) {
@@ -183,13 +225,13 @@ public class NoteController {
      *
      * @param note     note
      * @param authorId author
-     * @return response
      */
-    @GetMapping("/upload")
-    APIResponse<String> uploadNote(MultipartFile note, Long authorId, Long collectionId, String title, List<String> tags) {
+    @PostMapping("/upload")
+    APIResponse<Void> uploadNote(MultipartFile note, Long authorId, Long collectionId, String title, String tags) {
         try {
-            noteService.uploadNote(note, authorId, collectionId, title, tags);
-            return new APIResponse<>(ResponseCodes.SUCCESS, null, "Note uploaded");
+            List<String> tagList= List.of(tags.split(","));
+            noteService.uploadNote(note, authorId, collectionId, title, tagList);
+            return new APIResponse<>(ResponseCodes.SUCCESS, "Note uploaded",null);
         } catch (DataAccessException e) {
             log.error("Database query error", e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
@@ -221,5 +263,6 @@ public class NoteController {
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
+
 
 }

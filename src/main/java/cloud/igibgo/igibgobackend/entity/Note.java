@@ -1,17 +1,19 @@
 package cloud.igibgo.igibgobackend.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "note")
 public class Note {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     public String noteId;
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "author")
@@ -28,11 +30,14 @@ public class Note {
     public LocalDateTime uploadDate = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
     public String title;
 
-    @OneToMany(mappedBy = "note", cascade = CascadeType.ALL, orphanRemoval = true)
-    public List<NoteReply> replies = new ArrayList<>();
+    @OneToMany(mappedBy = "note", fetch = FetchType.EAGER)
+    @JsonManagedReference
+    Set<NoteTag> tags = new HashSet<>();
 
-    @OneToMany(mappedBy = "note", cascade = CascadeType.ALL, orphanRemoval = true)
-    public List<NoteTag> tags = new ArrayList<>();
+    @OneToMany(mappedBy = "note", fetch = FetchType.EAGER)
+    @JsonManagedReference
+    Set<NoteReply> replies = new HashSet<>();
+
 
 }
 

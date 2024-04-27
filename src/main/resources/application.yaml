@@ -25,7 +25,7 @@ spring:
       max-request-size: 5GB
 
   jpa:
-    open-in-view: false
+    open-in-view: true
 
 server:
   port: 8000

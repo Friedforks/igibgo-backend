@@ -72,7 +72,7 @@ public class FUserService {
      * @param avatar   avatar file
      * @return token
      */
-    public APIResponse<String> userRegister2(String username,
+    public APIResponse<FUser> userRegister2(String username,
                                              String authCode,
                                              String email,
                                              String password,
@@ -97,28 +97,22 @@ public class FUserService {
             // 3. encrypt password
             password = PasswordUtil.hashPassword(password);
             //4. Save to db
-            if (StringUtil.isContainNumber(password)) {// not teacher
-                fUserMapper.save(new FUser(
-                        username,
-                        avatarUrl,
-                        false,
-                        email,
-                        password
-                ));
-            } else {// is teacher
-                fUserMapper.save(new FUser(
-                        username,
-                        avatarUrl,
-                        true,
-                        email,
-                        password
-                ));
-            }
+            boolean isTeacher;
+            isTeacher= !StringUtil.isContainNumber(password);
+            FUser fUser = new FUser(
+                    username,
+                    avatarUrl,
+                    isTeacher,
+                    email,
+                    password
+            );
+            fUserMapper.save(fUser);
             //5. generate token
             String token = UUID.randomUUID().toString();
+            fUser.token=token;
             redisTemplate.opsForValue().set(email, token);
             redisTemplate.opsForValue().set(token, email);
-            return new APIResponse<>(ResponseCodes.SUCCESS, "User registered successfully", token);
+            return new APIResponse<>(ResponseCodes.SUCCESS, "User registered successfully", fUser);
         } catch (IOException e) {
             log.error("Failed to create temp file: ", e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
@@ -129,11 +123,11 @@ public class FUserService {
         }
     }
 
-    public APIResponse<String> userLogin(String email, String password) {
+    public APIResponse<FUser> login(String email, String password) {
         FUser fUser = fUserMapper.findByEmail(email);
         // Check 1: user not found
         if (fUser == null) {
-            return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null);
+            return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found. Please register first.", null);
         }
         // Check 2: password incorrect
         if (!fUser.password.equals(PasswordUtil.hashPassword(password))) {
@@ -152,7 +146,35 @@ public class FUserService {
             redisTemplate.expire(email, 1, TimeUnit.DAYS);
             redisTemplate.expire(token, 1, TimeUnit.DAYS);
         }
+        fUser.token= token;
         // return token
-        return new APIResponse<>(ResponseCodes.SUCCESS, "Login successfully ", token);
+        return new APIResponse<>(ResponseCodes.SUCCESS, "Login successfully ", fUser);
+    }
+
+    public void logout(String token) {
+        // check 1: if token is null
+        if (token == null) {
+            log.error("Token is null");
+            throw new IllegalArgumentException("Token is null");
+        }
+        // check 2: if token exists
+        String email = redisTemplate.opsForValue().get(token);
+        if (email != null) {
+            redisTemplate.delete(email);
+            redisTemplate.delete(token);
+        }
+        else{
+            log.error("Token not found");
+            throw new IllegalArgumentException("User already logged out");
+        }
+    }
+
+    public FUser checkLogin(String token){
+        if(redisTemplate.opsForValue().get(token)==null){
+            throw new IllegalArgumentException("Token not found");
+        }
+        else{
+            return fUserMapper.findByEmail(redisTemplate.opsForValue().get(token));
+        }
     }
 }

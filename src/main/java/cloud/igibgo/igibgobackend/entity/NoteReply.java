@@ -1,5 +1,6 @@
 package cloud.igibgo.igibgobackend.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -9,15 +10,17 @@ import java.time.ZoneId;
 @Table(name = "note_reply")
 public class NoteReply {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     public Long noteReplyId;
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "note_id")
+    @JsonBackReference
     public Note note;
-    public String replyContent;
-    public LocalDateTime replyDate = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "author")
     public FUser author;
+    public String replyContent;
+    public LocalDateTime replyDate = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
+
 }

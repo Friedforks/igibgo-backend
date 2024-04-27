@@ -7,9 +7,11 @@ import jakarta.persistence.*;
 public class Collection {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    String collectionId;
+    public Long collectionId;
 
     @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     @JoinColumn(name = "author")
-    FUser fUser;
+    public FUser fUser;
+
+    public String collectionName;
 }
