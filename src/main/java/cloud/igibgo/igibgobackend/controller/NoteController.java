@@ -81,11 +81,13 @@ public class NoteController {
      * @param tags list of tags
      * @return list of notes that have at least one of the tags
      */
-    @PostMapping("/get/tags")
-    APIResponse<Set<Note>> getNoteByTags(String tags) {
+    @GetMapping("/get/tags")
+    APIResponse<Page<Note>> getNoteByTags(String tags,int page, int size, String orderBy,boolean ascending) {
         try {
             List<String> tagList= Arrays.asList(tags.split(","));
-            return new APIResponse<>(ResponseCodes.SUCCESS, null, noteService.getNotesByTags(tagList));
+            Sort.Direction direction=ascending?Sort.Direction.ASC:Sort.Direction.DESC;
+            PageRequest pageRequest=PageRequest.of(page,size,Sort.by(direction,orderBy));
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, noteService.getNotesByTags(tagList, pageRequest));
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
@@ -109,12 +111,14 @@ public class NoteController {
     }
 
     @GetMapping("/get/title")
-    APIResponse<List<Note>> getNoteByTitle(String title) {
+    APIResponse<Page<Note>> getNoteByTitle(String title,int page, int size, String orderBy,boolean ascending) {
         try {
             if (title == null) {
                 return new APIResponse<>(ResponseCodes.BAD_REQUEST, "title cannot be null", null);
             }
-            List<Note> notes = noteService.getNotesByTitle(title);
+            Sort.Direction direction=ascending?Sort.Direction.ASC:Sort.Direction.DESC;
+            PageRequest pageRequest=PageRequest.of(page,size,Sort.by(direction,orderBy));
+            Page<Note> notes = noteService.getNotesByTitle(title,pageRequest);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, notes);
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);
@@ -135,10 +139,10 @@ public class NoteController {
             Note note = noteService.getNoteByNoteId(noteId);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, note);
         } catch (DataAccessException e) {
-            log.error("Database query error: " + e.getMessage(), e);
+            log.error("Database query error: {}", e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
         } catch (Exception e) {
-            log.error("Unhandled error: " + e.getMessage(), e);
+            log.error("Unhandled error: {}", e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }

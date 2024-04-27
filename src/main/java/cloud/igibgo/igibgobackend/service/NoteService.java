@@ -9,6 +9,7 @@ import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.its.asn1.HashedData;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -36,13 +37,11 @@ public class NoteService {
      * @param tags list of tags
      * @return set of notes that have at least one of the tags
      */
-    public Set<Note> getNotesByTags(List<String> tags) {
-        Set<Note> notes = new HashSet<>();
-        for (String tag : tags) {
-            List<Note> notesLinkedWithTag = noteMapper.findAllByTag(tag);
-            notes.addAll(notesLinkedWithTag);
-        }
-        return notes;
+    public Page<Note> getNotesByTags(List<String> tags, PageRequest pageRequest) {
+        Page<Note> notes = noteMapper.findAllByTag(tags, pageRequest);
+        // remove duplicates
+        Set<Note> noteSet = new HashSet<>(notes.getContent());
+        return new PageImpl<>(new ArrayList<>(noteSet), notes.getPageable(), notes.getTotalElements());
     }
 
     @Resource
@@ -138,8 +137,8 @@ public class NoteService {
         return note;
     }
 
-    public List<Note> getNotesByTitle(String title){
-        return noteMapper.findAllByTitle(title);
+    public Page<Note> getNotesByTitle(String title,PageRequest pageRequest){
+        return noteMapper.findAllByTitle(title,pageRequest);
     }
 
     public void bookmarkNote(String noteId, Long userId) {

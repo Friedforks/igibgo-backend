@@ -4,14 +4,16 @@ spring:
   data:
     redis:
       host: igibgo.cloud
-      port: 1001
+      port: 5002
+      password: Hellochixiyu07!
   datasource:
     username: postgres
     password: Hellochixiyu07!
-    url: jdbc:postgresql://igibgo.cloud:1000/igibgo?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    url: jdbc:postgresql://igibgo.cloud:5000/igibgo?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
   mail:
     host: smtp.qq.com
     port: 587
+
     username: 3344544482@qq.com
     password: sttzewhrvvpwdaja
     properties.mail.smtp:

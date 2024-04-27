@@ -38,6 +38,9 @@ public class Note {
     @JsonManagedReference
     Set<NoteReply> replies = new HashSet<>();
 
-
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof Note && ((Note) obj).noteId.equals(this.noteId);
+    }
 }
 
