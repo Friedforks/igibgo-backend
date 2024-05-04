@@ -121,7 +121,11 @@ public class NoteService {
         if (userOptional.isEmpty()) {
             throw new IllegalArgumentException("User not found with the given user id");
         }
-
+        // Check3: if the user has already liked the note
+        Optional<NoteLike> noteLikeOptional = noteLikeMapper.findByNoteIdAndUserId(noteId, userId);
+        if (noteLikeOptional.isPresent()) {
+            throw new IllegalArgumentException("You have already liked the note");
+        }
         Note note = noteOptional.get();
         FUser user = userOptional.get();
         NoteLike noteLike = new NoteLike();
@@ -148,6 +152,11 @@ public class NoteService {
             throw new IllegalArgumentException("User not found with the given user id");
         }
         FUser user = userOptional.get();
+        // Check 3: if the user has already viewed the note
+        Optional<NoteView> noteViewOptional = noteViewMapper.findByNoteIdAndUserId(noteId, userId);
+        if(noteViewOptional.isPresent()){
+            return note;
+        }
         // 3. create the note view
         NoteView noteView = new NoteView();
         noteView.note = note;
