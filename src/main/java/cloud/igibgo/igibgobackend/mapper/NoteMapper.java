@@ -20,5 +20,4 @@ public interface NoteMapper extends JpaRepository<Note,String> {
 
     @Query("select distinct nt.tagText from NoteTag nt")
     public List<String> findDistinctTags();
-
 }

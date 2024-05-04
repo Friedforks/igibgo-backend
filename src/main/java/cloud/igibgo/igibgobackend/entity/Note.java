@@ -18,9 +18,6 @@ public class Note {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "author")
     public FUser author;
-    public Long likeCount = 0L;
-    public Long saveCount = 0L;
-    public Long viewCount = 0L;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "collection_id")

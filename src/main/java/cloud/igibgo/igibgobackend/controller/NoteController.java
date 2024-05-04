@@ -1,7 +1,6 @@
 package cloud.igibgo.igibgobackend.controller;
 
 import cloud.igibgo.igibgobackend.entity.APIResponse;
-import cloud.igibgo.igibgobackend.entity.Collection;
 import cloud.igibgo.igibgobackend.entity.Note;
 import cloud.igibgo.igibgobackend.entity.ResponseCodes;
 import cloud.igibgo.igibgobackend.mapper.NoteMapper;
@@ -18,7 +17,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 
 @Slf4j
 @RestController
@@ -33,7 +31,7 @@ public class NoteController {
     // note viewer side
 
     @GetMapping("/get/all")
-    APIResponse<List<Note>> getAllNotes(){
+    APIResponse<List<Note>> getAllNotes() {
         return new APIResponse<>(ResponseCodes.SUCCESS, null, noteMapper.findAll());
     }
 
@@ -82,11 +80,11 @@ public class NoteController {
      * @return list of notes that have at least one of the tags
      */
     @GetMapping("/get/tags")
-    APIResponse<Page<Note>> getNoteByTags(String tags,int page, int size, String orderBy,boolean ascending) {
+    APIResponse<Page<Note>> getNoteByTags(String tags, int page, int size, String orderBy, boolean ascending) {
         try {
-            List<String> tagList= Arrays.asList(tags.split(","));
-            Sort.Direction direction=ascending?Sort.Direction.ASC:Sort.Direction.DESC;
-            PageRequest pageRequest=PageRequest.of(page,size,Sort.by(direction,orderBy));
+            List<String> tagList = Arrays.asList(tags.split(","));
+            Sort.Direction direction = ascending ? Sort.Direction.ASC : Sort.Direction.DESC;
+            PageRequest pageRequest = PageRequest.of(page, size, Sort.by(direction, orderBy));
             return new APIResponse<>(ResponseCodes.SUCCESS, null, noteService.getNotesByTags(tagList, pageRequest));
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);
@@ -111,14 +109,14 @@ public class NoteController {
     }
 
     @GetMapping("/get/title")
-    APIResponse<Page<Note>> getNoteByTitle(String title,int page, int size, String orderBy,boolean ascending) {
+    APIResponse<Page<Note>> getNoteByTitle(String title, int page, int size, String orderBy, boolean ascending) {
         try {
             if (title == null) {
                 return new APIResponse<>(ResponseCodes.BAD_REQUEST, "title cannot be null", null);
             }
-            Sort.Direction direction=ascending?Sort.Direction.ASC:Sort.Direction.DESC;
-            PageRequest pageRequest=PageRequest.of(page,size,Sort.by(direction,orderBy));
-            Page<Note> notes = noteService.getNotesByTitle(title,pageRequest);
+            Sort.Direction direction = ascending ? Sort.Direction.ASC : Sort.Direction.DESC;
+            PageRequest pageRequest = PageRequest.of(page, size, Sort.by(direction, orderBy));
+            Page<Note> notes = noteService.getNotesByTitle(title, pageRequest);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, notes);
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);
@@ -131,12 +129,12 @@ public class NoteController {
 
 
     @GetMapping("/get/noteId")
-    APIResponse<Note> getNoteWithRepliesTags(String noteId) {
+    APIResponse<Note> getNoteWithRepliesTags(String noteId, Long userId) {
         try {
             if (noteId == null) {
                 return new APIResponse<>(ResponseCodes.BAD_REQUEST, "noteId cannot be null", null);
             }
-            Note note = noteService.getNoteByNoteId(noteId);
+            Note note = noteService.getNoteByNoteId(noteId, userId);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, note);
         } catch (DataAccessException e) {
             log.error("Database query error: {}", e.getMessage(), e);
@@ -148,9 +146,9 @@ public class NoteController {
     }
 
     @GetMapping("/like/videoId")
-    APIResponse<String> likeNote(String noteId) {
+    APIResponse<String> likeNote(String noteId, Long userId) {
         try {
-            noteService.likeNote(noteId);
+            noteService.likeNote(noteId, userId);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
         } catch (IllegalArgumentException e) {
             log.error("Illegal argument: " + e.getMessage(), e);
@@ -165,7 +163,7 @@ public class NoteController {
     }
 
     @GetMapping("/reply")
-    APIResponse<String> replyNote(String noteId, String content,Long authorId) {
+    APIResponse<String> replyNote(String noteId, String content, Long authorId) {
         try {
             noteService.replyNote(noteId, content, authorId);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, "Replied to note");
@@ -182,9 +180,9 @@ public class NoteController {
     }
 
     @GetMapping("/delete/reply")
-    APIResponse<Void> deleteReply( Long replyId, Long authorId) {
+    APIResponse<Void> deleteReply(Long replyId, Long authorId) {
         try {
-            noteService.deleteReply(replyId,authorId);
+            noteService.deleteReply(replyId, authorId);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
         } catch (IllegalArgumentException e) {
             log.error("Illegal argument: " + e.getMessage(), e);
@@ -205,10 +203,13 @@ public class NoteController {
      * @param userId user who saves the note
      * @return no response
      */
+
     @GetMapping("/bookmark")
-    APIResponse<String> bookmarkNote(String noteId, Long userId) {
+    APIResponse<String> bookmarkNote(String noteId,
+                                     Long userId,
+                                     @RequestParam(name = "folder", required = false, defaultValue = "default") String folder) {
         try {
-            noteService.bookmarkNote(noteId, userId);
+            noteService.bookmarkNote(noteId, userId, folder);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
         } catch (IllegalArgumentException e) {
             log.error("Illegal argument: " + e.getMessage(), e);
@@ -233,9 +234,9 @@ public class NoteController {
     @PostMapping("/upload")
     APIResponse<Void> uploadNote(MultipartFile note, Long authorId, Long collectionId, String title, String tags) {
         try {
-            List<String> tagList= List.of(tags.split(","));
+            List<String> tagList = List.of(tags.split(","));
             noteService.uploadNote(note, authorId, collectionId, title, tagList);
-            return new APIResponse<>(ResponseCodes.SUCCESS, "Note uploaded",null);
+            return new APIResponse<>(ResponseCodes.SUCCESS, "Note uploaded", null);
         } catch (DataAccessException e) {
             log.error("Database query error", e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
@@ -267,6 +268,5 @@ public class NoteController {
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
-
 
 }

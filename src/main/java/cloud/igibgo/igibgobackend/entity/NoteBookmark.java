@@ -7,16 +7,16 @@ import jakarta.persistence.*;
 public class NoteBookmark {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long bookmarkNoteId;
+    public Long bookmarkNoteId;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "note_id")
-    Note note;
+    public Note note;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id")
-    FUser author;
+    public FUser user;
 
-    String folder;
+    public String folder;
 }
 

@@ -3,23 +3,19 @@ package cloud.igibgo.igibgobackend.entity;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-
 @Entity
-@Table(name = "note_reply")
-public class NoteReply {
+@Table(name = "note_like")
+public class NoteLike {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    public Long noteReplyId;
+    public Long noteLikeId;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "note_id")
     @JsonBackReference
     public Note note;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "author")
-    public FUser author;
-    public String replyContent;
-    public LocalDateTime replyDate = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
+    @JoinColumn(name = "user_id")
+    public FUser user;
 }

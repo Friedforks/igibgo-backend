@@ -7,14 +7,12 @@ import cloud.igibgo.igibgobackend.util.UploadUtil;
 import jakarta.annotation.Resource;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
-import org.bouncycastle.its.asn1.HashedData;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -57,7 +55,7 @@ public class NoteService {
     private UploadUtil uploadUtil;
 
     // TODO Optimize this method to make save to COS and db in parallel
-    public void uploadNote(MultipartFile note, Long authorId, Long collectionId, String title,List<String> tags) throws IOException {
+    public void uploadNote(MultipartFile note, Long authorId, Long collectionId, String title, List<String> tags) throws IOException {
         Optional<FUser> author = fUserMapper.findById(authorId);
         // Check 1: if the author  exist
         if (author.isPresent()) {
@@ -78,8 +76,8 @@ public class NoteService {
                 throw new IllegalArgumentException("File type not supported, please upload notes in PDF, MD or DOCX format");
             }
             // 1. Generate new file name
-            String generatedNoteId=UUID.randomUUID().toString();
-            String newFilename = generatedNoteId+ "." + suffix;
+            String generatedNoteId = UUID.randomUUID().toString();
+            String newFilename = generatedNoteId + "." + suffix;
             // 2. create the note folder if empty
             Path tmpNoteFile = Files.createTempFile(null, newFilename);
             note.transferTo(tmpNoteFile);
@@ -88,7 +86,7 @@ public class NoteService {
             // 4. fetch collection (if collection id is not null)
             Collection c = collection.get();
             Note noteInstance = new Note();
-            noteInstance.noteId= generatedNoteId;
+            noteInstance.noteId = generatedNoteId;
             noteInstance.author = author.get();
             noteInstance.collection = c;
             noteInstance.title = title;
@@ -109,20 +107,33 @@ public class NoteService {
         }
     }
 
+    @Resource
+    private NoteLikeMapper noteLikeMapper;
 
-    public void likeNote(String noteId) {
+    public void likeNote(String noteId, Long userId) {
         Optional<Note> noteOptional = noteMapper.findById(noteId);
-        // if note exists
-        if (noteOptional.isPresent()) {
-            Note note = noteOptional.get();
-            note.likeCount++;
-            noteMapper.save(note);
-        } else {
+        // Check1: if note exists
+        if (noteOptional.isEmpty()) {
             throw new IllegalArgumentException("Note not found with the given note id");
         }
+        // Check2: if user exists
+        Optional<FUser> userOptional = fUserMapper.findById(userId);
+        if (userOptional.isEmpty()) {
+            throw new IllegalArgumentException("User not found with the given user id");
+        }
+
+        Note note = noteOptional.get();
+        FUser user = userOptional.get();
+        NoteLike noteLike = new NoteLike();
+        noteLike.note = note;
+        noteLike.user = user;
+        noteLikeMapper.save(noteLike);
     }
 
-    public Note getNoteByNoteId(String noteId) {
+    @Resource
+    private NoteViewMapper noteViewMapper;
+
+    public Note getNoteByNoteId(String noteId, Long userId) {
         Optional<Note> noteOptional = noteMapper.findById(noteId);
         // Check 1: if the note exists
         if (noteOptional.isEmpty()) {
@@ -130,39 +141,52 @@ public class NoteService {
         }
         // 1. get the note
         Note note = noteOptional.get();
-        // 2. increment the view count
-        note.viewCount++;
-        // 3. save the note to db
-        noteMapper.save(note);
+        // 2. get the user
+        Optional<FUser> userOptional = fUserMapper.findById(userId);
+        // Check 2: if the user exists
+        if (userOptional.isEmpty()) {
+            throw new IllegalArgumentException("User not found with the given user id");
+        }
+        FUser user = userOptional.get();
+        // 3. create the note view
+        NoteView noteView = new NoteView();
+        noteView.note = note;
+        noteView.user = user;
+        // 4. save the note view
+        noteViewMapper.save(noteView);
         return note;
     }
 
-    public Page<Note> getNotesByTitle(String title,PageRequest pageRequest){
-        return noteMapper.findAllByTitle(title,pageRequest);
+    public Page<Note> getNotesByTitle(String title, PageRequest pageRequest) {
+        return noteMapper.findAllByTitle(title, pageRequest);
     }
+    @Resource
+    private NoteBookmarkMapper noteBookmarkMapper;
 
-    public void bookmarkNote(String noteId, Long userId) {
+    public void bookmarkNote(String noteId, Long userId,String folder) {
         // Check 1: if the user exists
-        if (fUserMapper.existsById(userId)) {
-            // Check 2: if the note exists
-            Optional<Note> note = noteMapper.findById(noteId);
-            if (note.isPresent()) {
-                // 1. get the note
-                Note noteInstance = note.get();
-                noteInstance.saveCount++;
-                // 2. save the note to db
-                noteMapper.save(noteInstance);
-            } else {
-                throw new IllegalArgumentException("Note not found");
-            }
-        } else {
+        Optional<FUser> userOptional = fUserMapper.findById(userId);
+        if (userOptional.isEmpty()) {
             throw new IllegalArgumentException("User not found");
         }
+        // Check 2: if the note exists
+        Optional<Note> noteOptional = noteMapper.findById(noteId);
+        if (noteOptional.isEmpty()) {
+            throw new IllegalArgumentException("Note not found");
+        }
+        Note note = noteOptional.get();
+        FUser user = userOptional.get();
+        // 2. create new NoteBookmark
+        NoteBookmark noteBookmark = new NoteBookmark();
+        noteBookmark.note = note;
+        noteBookmark.user = user;
+        noteBookmark.folder = folder;
+        // 3. save the bookmark
+        noteBookmarkMapper.save(noteBookmark);
     }
 
 
-
-    public List<String> getAllTags(){
+    public List<String> getAllTags() {
         // fetch all distinct tag content from db
         return noteMapper.findDistinctTags();
     }

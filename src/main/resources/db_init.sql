@@ -53,6 +53,18 @@ create table note_bookmark
     folder           text
 );
 
+create table note_like(
+    note_like_id bigserial primary key not null,
+    note_id text not null references note (note_id) on delete cascade,
+    user_id bigint not null references f_user (user_id) on delete cascade
+);
+
+create table note_view(
+    note_view_id bigserial primary key not null,
+    note_id text not null references note (note_id) on delete cascade,
+    user_id bigint not null references f_user (user_id) on delete cascade
+);
+
 create table video
 (
     video_id        text      not null primary key,

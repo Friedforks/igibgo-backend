@@ -1,6 +1,9 @@
 spring:
   application:
     name: igibgo
+  output:
+    ansi:
+      enabled: always
   data:
     redis:
       host: igibgo.cloud
@@ -40,6 +43,8 @@ cos:
   secretKey:
     OdeQwDF0YrwlKs6MXWIrCMK7h2DDzWpu
   bucketName:
-    igibgo-bucket-1303865496
+    #    igibgo-bucket-1303865496
+    myoss-1303865496
   publicAccessUrl:
-    "https://igibgo-bucket-1303865496.cos.ap-shanghai.myqcloud.com"
+    #    "https://igibgo-bucket-1303865496.cos.ap-shanghai.myqcloud.com"
+    "https://myoss-1303865496.cos.ap-shanghai.myqcloud.com"

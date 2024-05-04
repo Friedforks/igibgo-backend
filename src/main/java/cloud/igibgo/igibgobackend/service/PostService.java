@@ -95,13 +95,13 @@ public class PostService {
 
     public void deleteReply(String replyId, Long authorId) {
         // Check 1: if the reply exist
-        Optional<PostTag> postTagOptional = postTagMapper.findById(replyId);
-        if (postTagOptional.isPresent()) {
+        Optional<Post> postOptional = postMapper.findById(replyId);
+        if (postOptional.isPresent()) {
             // Check 2: if the author exist
             Optional<FUser> userOptional = fUserMapper.findById(authorId);
             if (userOptional.isPresent()) {
                 // 1. delete the reply
-                postTagMapper.deleteById(replyId);
+                postMapper.deleteById(replyId);
             } else {
                 throw new IllegalArgumentException("Author does not exist");
             }

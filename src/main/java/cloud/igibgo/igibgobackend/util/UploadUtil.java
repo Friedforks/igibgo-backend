@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.nio.file.FileStore;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -148,7 +149,7 @@ public class UploadUtil {
 
         // 设置存储类型（如有需要，不需要请忽略此行代码）, 默认是标准(Standard), 低频(standard_ia)
         // 更多存储类型请参见 https://cloud.tencent.com/document/product/436/33417
-        putObjectRequest.setStorageClass(StorageClass.Standard_IA);
+        putObjectRequest.setStorageClass(StorageClass.Standard);
 
         //若需要设置对象的自定义 Headers 可参照下列代码,若不需要可省略下面这几行,对象自定义 Headers 的详细信息可参考 https://cloud.tencent.com/document/product/436/13361
 //        ObjectMetadata objectMetadata = new ObjectMetadata();
@@ -156,15 +157,14 @@ public class UploadUtil {
 
         //若设置 Content-Type、Cache-Control、Content-Disposition、Content-Encoding、Expires 这五个字自定义 Headers，推荐采用 objectMetadata.setHeader()
         //自定义header尽量避免特殊字符，使用中文前请先手动对其进行URLEncode
-//        objectMetadata.setHeader(key, value);
+//        objectMetadata.setHeader("Content-Disposition", "inline");
         //若要设置 “x-cos-meta-[自定义后缀]” 这样的自定义 Header，推荐采用
 //        Map<String, String> userMeta = new HashMap<String, String>();
 //        userMeta.put("x-cos-meta-[自定义后缀]", "value");
 //        objectMetadata.setUserMetadata(userMeta);
-
-
+//
+//
 //        putObjectRequest.withMetadata(objectMetadata);
-
 
         try {
             // 高级接口会返回一个异步结果Upload

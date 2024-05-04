@@ -2,8 +2,9 @@ package cloud.igibgo.igibgobackend.service;
 
 import cloud.igibgo.igibgobackend.entity.APIResponse;
 import cloud.igibgo.igibgobackend.entity.FUser;
+import cloud.igibgo.igibgobackend.entity.NoteBookmark;
 import cloud.igibgo.igibgobackend.entity.ResponseCodes;
-import cloud.igibgo.igibgobackend.mapper.FUserMapper;
+import cloud.igibgo.igibgobackend.mapper.*;
 import cloud.igibgo.igibgobackend.util.MailUtil;
 import cloud.igibgo.igibgobackend.util.PasswordUtil;
 import cloud.igibgo.igibgobackend.util.StringUtil;
@@ -18,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -123,6 +125,11 @@ public class FUserService {
         }
     }
 
+    public APIResponse<FUser> findFUser(Long userId){
+        Optional<FUser> fUser = fUserMapper.findById(userId);
+        return fUser.map(user -> new APIResponse<>(ResponseCodes.SUCCESS, null, user)).orElseGet(() -> new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null));
+    }
+
     public APIResponse<FUser> login(String email, String password) {
         FUser fUser = fUserMapper.findByEmail(email);
         // Check 1: user not found
@@ -176,5 +183,55 @@ public class FUserService {
         else{
             return fUserMapper.findByEmail(redisTemplate.opsForValue().get(token));
         }
+    }
+
+    public APIResponse<FUser> updateFUser(FUser fUser){
+        try{
+            fUserMapper.save(fUser);
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, fUser);
+        }catch (Exception e){
+            log.error("Failed to update user: ", e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, e.getMessage(), null);
+        }
+    }
+
+    @Resource
+    private NoteMapper noteMapper;
+
+    @Resource
+    private NoteLikeMapper noteLikeMapper;
+
+    public APIResponse<Long> totalLikes(Long authorId){
+        // check 1: if user exists
+        if(fUserMapper.findById(authorId).isEmpty()){
+            return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null);
+        }
+        // total note like
+        Long likeCount = noteLikeMapper.countByAuthorId(authorId);
+        return new APIResponse<>(ResponseCodes.SUCCESS, null, likeCount);
+    }
+
+    @Resource
+    private NoteBookmarkMapper noteBookmarkMapper;
+    public APIResponse<Long> totalSaves(Long userId){
+        // check 1: if user exists
+        if(fUserMapper.findById(userId).isEmpty()){
+            return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null);
+        }
+        // total note save
+        Long saveCount = noteBookmarkMapper.countByAuthorId(userId);
+        return new APIResponse<>(ResponseCodes.SUCCESS, null, saveCount);
+    }
+
+    @Resource
+    private NoteViewMapper noteViewMapper;
+    public APIResponse<Long> totalViews(Long userId){
+        // check 1: if user exists
+        if(fUserMapper.findById(userId).isEmpty()){
+            return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null);
+        }
+        // total note view
+        Long viewCount = noteViewMapper.countByAuthorId(userId);
+        return new APIResponse<>(ResponseCodes.SUCCESS, null, viewCount);
     }
 }
