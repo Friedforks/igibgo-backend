@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.Query;
 public interface NoteBookmarkMapper extends JpaRepository<NoteBookmark,Long> {
     @Query("select count(n) from NoteBookmark n where n.note.author.userId= :userId")
     public Long countByAuthorId(Long userId);
+
+    public Long countByNoteNoteId(String noteId);
 }

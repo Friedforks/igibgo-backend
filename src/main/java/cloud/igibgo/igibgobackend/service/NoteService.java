@@ -264,4 +264,19 @@ public class NoteService {
         }
     }
 
+    public Long noteTotalLike(String noteId){
+        return noteLikeMapper.countByNoteNoteId(noteId);
+    }
+
+    public Long noteTotalView(String noteId){
+        return noteViewMapper.countByNoteNoteId(noteId);
+    }
+
+    public Long noteTotalSave(String noteId){
+        return noteBookmarkMapper.countByNoteNoteId(noteId);
+    }
+
+    public Long noteTotalReply(String noteId){
+        return noteReplyMapper.countByNoteNoteId(noteId);
+    }
 }

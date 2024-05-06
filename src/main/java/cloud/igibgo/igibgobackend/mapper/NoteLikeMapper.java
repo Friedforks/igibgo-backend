@@ -13,4 +13,6 @@ public interface NoteLikeMapper extends JpaRepository<NoteLike,Long> {
     // check if user already like the note
     @Query("select nl from NoteLike nl where nl.note.noteId=:noteId and nl.user.userId=:userId")
     public Optional<NoteLike> findByNoteIdAndUserId(String noteId, Long userId);
+
+    public Long countByNoteNoteId(String noteId);
 }

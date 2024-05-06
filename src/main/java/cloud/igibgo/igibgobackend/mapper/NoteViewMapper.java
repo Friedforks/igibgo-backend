@@ -13,4 +13,6 @@ public interface NoteViewMapper extends JpaRepository<NoteView,Long>{
     // check if user already view the note
     @Query("select nv from NoteView nv where nv.note.noteId=:noteId and nv.user.userId=:userId")
     public Optional<NoteView> findByNoteIdAndUserId(String noteId, Long userId);
+
+    public Long countByNoteNoteId(String noteId);
 }
