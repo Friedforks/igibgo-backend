@@ -134,6 +134,15 @@ public class NoteService {
         noteLikeMapper.save(noteLike);
     }
 
+    public void unlikeNote(String noteId, Long userId) {
+        Optional<NoteLike> noteLikeOptional = noteLikeMapper.findByNoteIdAndUserId(noteId, userId);
+        if (noteLikeOptional.isPresent()) {
+            noteLikeMapper.deleteById(noteLikeOptional.get().noteLikeId);
+        } else {
+            throw new IllegalArgumentException("You have not liked the note");
+        }
+    }
+
     @Resource
     private NoteViewMapper noteViewMapper;
 
@@ -154,7 +163,7 @@ public class NoteService {
         FUser user = userOptional.get();
         // Check 3: if the user has already viewed the note
         Optional<NoteView> noteViewOptional = noteViewMapper.findByNoteIdAndUserId(noteId, userId);
-        if(noteViewOptional.isPresent()){
+        if (noteViewOptional.isPresent()) {
             return note;
         }
         // 3. create the note view
@@ -169,10 +178,11 @@ public class NoteService {
     public Page<Note> getNotesByTitle(String title, PageRequest pageRequest) {
         return noteMapper.findAllByTitle(title, pageRequest);
     }
+
     @Resource
     private NoteBookmarkMapper noteBookmarkMapper;
 
-    public void bookmarkNote(String noteId, Long userId,String folder) {
+    public void bookmarkNote(String noteId, Long userId, String folder) {
         // Check 1: if the user exists
         Optional<FUser> userOptional = fUserMapper.findById(userId);
         if (userOptional.isEmpty()) {
@@ -182,6 +192,11 @@ public class NoteService {
         Optional<Note> noteOptional = noteMapper.findById(noteId);
         if (noteOptional.isEmpty()) {
             throw new IllegalArgumentException("Note not found");
+        }
+        // Check 3: if user has already bookmarked the note
+        Optional<NoteBookmark> noteBookmarkOptional = noteBookmarkMapper.findNoteBookmarkByNoteNoteIdAndUserUserIdAndFolder(noteId, userId,folder);
+        if (noteBookmarkOptional.isPresent()) {
+            throw new IllegalArgumentException("You have already bookmarked the note");
         }
         Note note = noteOptional.get();
         FUser user = userOptional.get();
@@ -264,19 +279,34 @@ public class NoteService {
         }
     }
 
-    public Long noteTotalLike(String noteId){
+    public Long noteTotalLike(String noteId) {
         return noteLikeMapper.countByNoteNoteId(noteId);
     }
 
-    public Long noteTotalView(String noteId){
+    public Long noteTotalView(String noteId) {
         return noteViewMapper.countByNoteNoteId(noteId);
     }
 
-    public Long noteTotalSave(String noteId){
+    public Long noteTotalSave(String noteId) {
         return noteBookmarkMapper.countByNoteNoteId(noteId);
     }
 
-    public Long noteTotalReply(String noteId){
+    public Long noteTotalReply(String noteId) {
         return noteReplyMapper.countByNoteNoteId(noteId);
     }
+
+    public Boolean isLiked(String noteId, Long userId) {
+        return noteLikeMapper.findByNoteIdAndUserId(noteId, userId).isPresent();
+    }
+
+    public Boolean isSaved(String noteId, Long userId) {
+        return noteBookmarkMapper.findNoteBookmarkByNoteNoteIdAndUserUserId(noteId, userId).isPresent();
+    }
+
+    public List<NoteBookmark> getBookmarksByUserId(Long userId) {
+        return noteBookmarkMapper.findAllByUserUserIdAndFolderIsNotNull(userId);
+    }
+
+    // check if folder duplicate in noteBookmark
+
 }
