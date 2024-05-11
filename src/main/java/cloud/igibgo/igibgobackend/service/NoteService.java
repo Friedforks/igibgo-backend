@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,6 +18,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -40,6 +42,10 @@ public class NoteService {
         // remove duplicates
         Set<Note> noteSet = new HashSet<>(notes.getContent());
         return new PageImpl<>(new ArrayList<>(noteSet), notes.getPageable(), notes.getTotalElements());
+    }
+
+    public List<NoteReply> getAllReplies(String noteId) {
+        return noteReplyMapper.findAllByNoteNoteIdOrderByReplyDateDesc(noteId);
     }
 
     @Resource
@@ -110,6 +116,26 @@ public class NoteService {
     @Resource
     private NoteLikeMapper noteLikeMapper;
 
+    private void updateLikeCount(String noteId) {
+        Long likeCount = noteLikeMapper.countByNoteNoteId(noteId);
+        noteMapper.updateLikeCountByNoteId(noteId, likeCount);
+    }
+
+    private void updateViewCount(String noteId) {
+        Long viewCount = noteViewMapper.countByNoteNoteId(noteId);
+        noteMapper.updateViewCountByNoteId(noteId, viewCount);
+    }
+
+    private void updateSaveCount(String noteId) {
+        Long saveCount = noteBookmarkMapper.countByNoteNoteId(noteId);
+        noteMapper.updateSaveCountByNoteId(noteId, saveCount);
+    }
+
+    private void updateReplyCount(String noteId) {
+        Long replyCount = noteReplyMapper.countByNoteNoteId(noteId);
+        noteMapper.updateReplyCountByNoteId(noteId, replyCount);
+    }
+
     public void likeNote(String noteId, Long userId) {
         Optional<Note> noteOptional = noteMapper.findById(noteId);
         // Check1: if note exists
@@ -131,16 +157,25 @@ public class NoteService {
         NoteLike noteLike = new NoteLike();
         noteLike.note = note;
         noteLike.user = user;
+        // save noteLike
         noteLikeMapper.save(noteLike);
+        // update like count
+        updateLikeCount(noteId);
     }
 
     public void unlikeNote(String noteId, Long userId) {
         Optional<NoteLike> noteLikeOptional = noteLikeMapper.findByNoteIdAndUserId(noteId, userId);
-        if (noteLikeOptional.isPresent()) {
-            noteLikeMapper.deleteById(noteLikeOptional.get().noteLikeId);
-        } else {
+        Optional<Note> noteOptional = noteMapper.findById(noteId);
+        // Check 1: if the note exists
+        if (noteOptional.isEmpty()) {
+            throw new IllegalArgumentException("Note not found with the given note id");
+        }
+        // Check 2: if the user has liked the note
+        if (noteLikeOptional.isEmpty()) {
             throw new IllegalArgumentException("You have not liked the note");
         }
+        noteLikeMapper.deleteById(noteLikeOptional.get().noteLikeId);
+        updateLikeCount(noteId);
     }
 
     @Resource
@@ -166,12 +201,12 @@ public class NoteService {
         if (noteViewOptional.isPresent()) {
             return note;
         }
-        // 3. create the note view
+        // 3. save the user-note view record to db
         NoteView noteView = new NoteView();
         noteView.note = note;
         noteView.user = user;
-        // 4. save the note view
         noteViewMapper.save(noteView);
+        updateViewCount(noteId);
         return note;
     }
 
@@ -182,7 +217,7 @@ public class NoteService {
     @Resource
     private NoteBookmarkMapper noteBookmarkMapper;
 
-    public void bookmarkNote(String noteId, Long userId, String folder) {
+    public void bookmarkNote(String noteId, Long userId, List<String> folder) {
         // Check 1: if the user exists
         Optional<FUser> userOptional = fUserMapper.findById(userId);
         if (userOptional.isEmpty()) {
@@ -193,20 +228,22 @@ public class NoteService {
         if (noteOptional.isEmpty()) {
             throw new IllegalArgumentException("Note not found");
         }
-        // Check 3: if user has already bookmarked the note
-        Optional<NoteBookmark> noteBookmarkOptional = noteBookmarkMapper.findNoteBookmarkByNoteNoteIdAndUserUserIdAndFolder(noteId, userId,folder);
-        if (noteBookmarkOptional.isPresent()) {
-            throw new IllegalArgumentException("You have already bookmarked the note");
-        }
         Note note = noteOptional.get();
         FUser user = userOptional.get();
-        // 2. create new NoteBookmark
-        NoteBookmark noteBookmark = new NoteBookmark();
-        noteBookmark.note = note;
-        noteBookmark.user = user;
-        noteBookmark.folder = folder;
-        // 3. save the bookmark
-        noteBookmarkMapper.save(noteBookmark);
+        // 2. create a list of note bookmarks
+        List<NoteBookmark> noteBookmarks = folder.parallelStream().map(f -> {
+            NoteBookmark noteBookmark = new NoteBookmark();
+            noteBookmark.note = note;
+            noteBookmark.user = user;
+            noteBookmark.folder = f;
+            return noteBookmark;
+        }).toList();
+        // 3. remove all records of the note given noteId and userId
+        noteBookmarkMapper.deleteNoteBookmarksByNoteNoteIdAndUserUserId(noteId, userId);
+        // 4. save the bookmark
+        noteBookmarkMapper.saveAll(noteBookmarks);
+        // 5. update save count
+        updateSaveCount(noteId);
     }
 
 
@@ -262,21 +299,24 @@ public class NoteService {
         noteReplyMapper.save(reply);
     }
 
-    public void deleteReply(Long replyId, Long authorId) {
-        // Check 1: if the reply exist
-        Optional<NoteReply> noteReplyOptional = noteReplyMapper.findById(replyId);
-        if (noteReplyOptional.isPresent()) {
-            // Check 2: if the author exist
-            Optional<FUser> userOptional = fUserMapper.findById(authorId);
-            if (userOptional.isPresent()) {
-                // 1. delete the reply
-                noteReplyMapper.deleteById(replyId);
-            } else {
-                throw new IllegalArgumentException("Author does not exist");
-            }
-        } else {
-            throw new IllegalArgumentException("Reply does not exist");
+    @Resource
+    RedisTemplate<String, String> redisTemplate;
+
+    public void deleteReply(Long replyId, String token) {
+        // Check 1: verify the token
+        String userEmail = redisTemplate.opsForValue().get(token);
+        if (userEmail == null) {
+            throw new IllegalArgumentException("User not logged in");
         }
+        Optional<FUser> fUserOptional = fUserMapper.findByEmail(userEmail);
+        if (fUserOptional.isEmpty()) {
+            throw new IllegalArgumentException("User not found");
+        }
+        // Check 2: if the reply exist
+        if (noteReplyMapper.findById(replyId).isEmpty()) {
+            throw new IllegalArgumentException("Reply not found");
+        }
+        noteReplyMapper.deleteById(replyId);
     }
 
     public Long noteTotalLike(String noteId) {
@@ -300,13 +340,18 @@ public class NoteService {
     }
 
     public Boolean isSaved(String noteId, Long userId) {
-        return noteBookmarkMapper.findNoteBookmarkByNoteNoteIdAndUserUserId(noteId, userId).isPresent();
+        return !noteBookmarkMapper.findNoteBookmarksByNoteNoteIdAndUserUserId(noteId, userId).isEmpty();
+    }
+
+    public Boolean isReplied(String noteId, Long userId) {
+        return !noteReplyMapper.findNoteRepliesByNoteNoteIdAndAuthorUserId(noteId, userId).isEmpty();
     }
 
     public List<NoteBookmark> getBookmarksByUserId(Long userId) {
         return noteBookmarkMapper.findAllByUserUserIdAndFolderIsNotNull(userId);
     }
 
-    // check if folder duplicate in noteBookmark
-
+    public List<NoteBookmark> getBookmarksByUserIdAndNoteId(Long userId, String noteId) {
+        return noteBookmarkMapper.findAllByUserUserIdAndNoteNoteId(userId, noteId);
+    }
 }

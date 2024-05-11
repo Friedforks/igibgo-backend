@@ -84,8 +84,8 @@ public class FUserController {
     }
 
     @GetMapping("/userId")
-    public APIResponse<FUser> findFUser(Long userId){
-        return fUserService.findFUser(userId);
+    public APIResponse<FUser> findFUser(Long userId, String token){
+        return fUserService.findFUser(userId,token);
     }
 
     @PostMapping("/update")

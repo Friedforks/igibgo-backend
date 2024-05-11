@@ -38,13 +38,13 @@ public class FUserService {
     public APIResponse<String> userRegister1(String email, String password) {
         //Check 1: not Huili email
         if (!email.contains("@huilieducation.cn")) {
-            log.info("User email: "+email+" try to register but failed since it is not Huili email");
+            log.info("User email: " + email + " try to register but failed since it is not Huili email");
             return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Email must be @huilieducation.cn", null);
         }
 
         //Check 2: check if user is already registered
-        if (fUserMapper.findByEmail(email) != null) {
-            log.info("User email: "+email+" try to register but failed since it is already registered");
+        if (fUserMapper.findByEmail(email).isPresent()) {
+            log.info("User email: " + email + " try to register but failed since it is already registered");
             return new APIResponse<>(ResponseCodes.CONFLICT, "User already registered", null);
         }
 
@@ -63,10 +63,13 @@ public class FUserService {
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
+
     @Resource
     UploadUtil uploadUtil;
+
     /**
      * User register 2
+     *
      * @param username username
      * @param authCode email auth code
      * @param email    Huili email
@@ -75,10 +78,10 @@ public class FUserService {
      * @return token
      */
     public APIResponse<FUser> userRegister2(String username,
-                                             String authCode,
-                                             String email,
-                                             String password,
-                                             MultipartFile avatar) {
+                                            String authCode,
+                                            String email,
+                                            String password,
+                                            MultipartFile avatar) {
         // Check 1: check the auth code
         String redisValue = redisTemplate.opsForValue().get("register" + email);// redis value contains password + auth code
         if (redisValue == null) {
@@ -90,7 +93,7 @@ public class FUserService {
         //1. Delete the auth code
         redisTemplate.delete("register" + email);
         //2. Upload avatar
-        String avatarFileName = UUID.randomUUID()+ Objects.requireNonNull(avatar.getOriginalFilename()).substring(avatar.getOriginalFilename().lastIndexOf("."));
+        String avatarFileName = UUID.randomUUID() + Objects.requireNonNull(avatar.getOriginalFilename()).substring(avatar.getOriginalFilename().lastIndexOf("."));
         try {
             Path tempAvatarFile = Files.createTempFile(null, avatarFileName);
             avatar.transferTo(tempAvatarFile);
@@ -100,7 +103,7 @@ public class FUserService {
             password = PasswordUtil.hashPassword(password);
             //4. Save to db
             boolean isTeacher;
-            isTeacher= !StringUtil.isContainNumber(password);
+            isTeacher = !StringUtil.isContainNumber(password);
             FUser fUser = new FUser(
                     username,
                     avatarUrl,
@@ -111,7 +114,7 @@ public class FUserService {
             fUserMapper.save(fUser);
             //5. generate token
             String token = UUID.randomUUID().toString();
-            fUser.token=token;
+            fUser.token = token;
             redisTemplate.opsForValue().set(email, token);
             redisTemplate.opsForValue().set(token, email);
             return new APIResponse<>(ResponseCodes.SUCCESS, "User registered successfully", fUser);
@@ -125,19 +128,36 @@ public class FUserService {
         }
     }
 
-    public APIResponse<FUser> findFUser(Long userId){
-        Optional<FUser> fUser = fUserMapper.findById(userId);
-        return fUser.map(user -> new APIResponse<>(ResponseCodes.SUCCESS, null, user)).orElseGet(() -> new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null));
+    public APIResponse<FUser> findFUser(Long userId, String token) {
+        Optional<FUser> fUserOptional = fUserMapper.findById(userId);
+        if (fUserOptional.isEmpty()) {
+            return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null);
+        }
+        FUser fUser = fUserOptional.get();
+        // check if token is valid and user is the same
+        String email = redisTemplate.opsForValue().get(token);
+        if (email == null) {
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, "User not logged in", null);
+        }
+        if (!email.equals(fUser.email)) {
+            // hide sensitive info
+            fUser.password = null;
+            fUser.email = null;
+            fUser.isTeacher = false;
+            fUser.token = null;
+        }
+        return new APIResponse<>(ResponseCodes.SUCCESS, null, fUser);
     }
 
     public APIResponse<FUser> login(String email, String password) {
-        FUser fUser = fUserMapper.findByEmail(email);
+        Optional<FUser> fUserOptional = fUserMapper.findByEmail(email);
         // Check 1: user not found
-        if (fUser == null) {
+        if (fUserOptional.isEmpty()) {
             return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found. Please register first.", null);
         }
         // Check 2: password incorrect
-        if (!fUser.password.equals(PasswordUtil.hashPassword(password))) {
+        FUser fuser = fUserOptional.get();
+        if (!fuser.password.equals(PasswordUtil.hashPassword(password))) {
             return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Password incorrect", null);
         }
         // 1. Find if token is already generated in redis
@@ -153,9 +173,9 @@ public class FUserService {
             redisTemplate.expire(email, 1, TimeUnit.DAYS);
             redisTemplate.expire(token, 1, TimeUnit.DAYS);
         }
-        fUser.token= token;
+        fuser.token = token;
         // return token
-        return new APIResponse<>(ResponseCodes.SUCCESS, "Login successfully ", fUser);
+        return new APIResponse<>(ResponseCodes.SUCCESS, "Login successfully ", fuser);
     }
 
     public void logout(String token) {
@@ -169,41 +189,39 @@ public class FUserService {
         if (email != null) {
             redisTemplate.delete(email);
             redisTemplate.delete(token);
-        }
-        else{
+        } else {
             log.error("Token not found");
             throw new IllegalArgumentException("User already logged out");
         }
     }
 
-    public FUser checkLogin(String token){
-        if(redisTemplate.opsForValue().get(token)==null){
+    public FUser checkLogin(String token) {
+        if (redisTemplate.opsForValue().get(token) == null) {
             throw new IllegalArgumentException("Token not found");
         }
-        else{
-            return fUserMapper.findByEmail(redisTemplate.opsForValue().get(token));
+        Optional<FUser> fUserOptional = fUserMapper.findByEmail(redisTemplate.opsForValue().get(token));
+        if (fUserOptional.isEmpty()) {
+            throw new IllegalArgumentException("User not found");
         }
+        return fUserOptional.get();
     }
 
-    public APIResponse<FUser> updateFUser(FUser fUser){
-        try{
+    public APIResponse<FUser> updateFUser(FUser fUser) {
+        try {
             fUserMapper.save(fUser);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, fUser);
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("Failed to update user: ", e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, e.getMessage(), null);
         }
     }
 
     @Resource
-    private NoteMapper noteMapper;
-
-    @Resource
     private NoteLikeMapper noteLikeMapper;
 
-    public APIResponse<Long> totalLikes(Long authorId){
+    public APIResponse<Long> totalLikes(Long authorId) {
         // check 1: if user exists
-        if(fUserMapper.findById(authorId).isEmpty()){
+        if (fUserMapper.findById(authorId).isEmpty()) {
             return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null);
         }
         // total note like
@@ -213,9 +231,10 @@ public class FUserService {
 
     @Resource
     private NoteBookmarkMapper noteBookmarkMapper;
-    public APIResponse<Long> totalSaves(Long userId){
+
+    public APIResponse<Long> totalSaves(Long userId) {
         // check 1: if user exists
-        if(fUserMapper.findById(userId).isEmpty()){
+        if (fUserMapper.findById(userId).isEmpty()) {
             return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null);
         }
         // total note save
@@ -225,9 +244,10 @@ public class FUserService {
 
     @Resource
     private NoteViewMapper noteViewMapper;
-    public APIResponse<Long> totalViews(Long userId){
+
+    public APIResponse<Long> totalViews(Long userId) {
         // check 1: if user exists
-        if(fUserMapper.findById(userId).isEmpty()){
+        if (fUserMapper.findById(userId).isEmpty()) {
             return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null);
         }
         // total note view
