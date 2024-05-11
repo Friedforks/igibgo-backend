@@ -23,6 +23,11 @@ public class Note {
     @JoinColumn(name = "collection_id")
     public Collection collection;// fk
 
+    public Long likeCount=0L;
+    public Long saveCount=0L;
+    public Long viewCount=0L;
+    public Long replyCount=0L;
+
     public String noteUrl;
     public LocalDateTime uploadDate = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
     public String title;

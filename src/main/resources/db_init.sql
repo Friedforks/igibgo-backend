@@ -12,9 +12,9 @@ create table f_user
 
 create table collection
 (
-    collection_id bigserial primary key not null,
-    author        int references f_user (user_id) on delete cascade,
-    collection_name text not null
+    collection_id   bigserial primary key not null,
+    author          int references f_user (user_id) on delete cascade,
+    collection_name text                  not null
 );
 
 create table note
@@ -24,6 +24,7 @@ create table note
     like_count    bigint    not null default 0,
     save_count    bigint    not null default 0,
     view_count    bigint    not null default 0,
+    reply_count   bigint    not null default 0,
     collection_id int       not null references collection (collection_id) on delete cascade,
     note_url      text      not null,
     upload_date   timestamp not null,
@@ -53,16 +54,18 @@ create table note_bookmark
     folder           text
 );
 
-create table note_like(
+create table note_like
+(
     note_like_id bigserial primary key not null,
-    note_id text not null references note (note_id) on delete cascade,
-    user_id bigint not null references f_user (user_id) on delete cascade
+    note_id      text                  not null references note (note_id) on delete cascade,
+    user_id      bigint                not null references f_user (user_id) on delete cascade
 );
 
-create table note_view(
+create table note_view
+(
     note_view_id bigserial primary key not null,
-    note_id text not null references note (note_id) on delete cascade,
-    user_id bigint not null references f_user (user_id) on delete cascade
+    note_id      text                  not null references note (note_id) on delete cascade,
+    user_id      bigint                not null references f_user (user_id) on delete cascade
 );
 
 create table video
