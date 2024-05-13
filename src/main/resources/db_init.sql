@@ -46,12 +46,17 @@ create table note_reply
     reply_date    timestamp not null,
     author        int       not null references f_user (user_id) on delete cascade
 );
+
+create table bookmark(
+    bookmark_id bigserial primary key not null,
+    user_id bigint references f_user (user_id) on delete cascade,
+    bookmark_name text not null
+);
 create table note_bookmark
 (
-    bookmark_note_id bigserial not null,
-    note_id          text      not null references note (note_id) on delete cascade,
-    user_id          bigint references f_user (user_id) on delete cascade,
-    folder           text
+    note_bookmark_id bigserial not null,
+    bookmark_id      bigint references bookmark (bookmark_id) on delete cascade,
+    note_id          text      not null references note (note_id) on delete cascade
 );
 
 create table note_like

@@ -238,7 +238,7 @@ public class FUserService {
             return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null);
         }
         // total note save
-        Long saveCount = noteBookmarkMapper.countByAuthorId(userId);
+        Long saveCount = noteBookmarkMapper.countByBookmarkUserUserId(userId);
         return new APIResponse<>(ResponseCodes.SUCCESS, null, saveCount);
     }
 

@@ -2,16 +2,17 @@ package cloud.igibgo.igibgobackend.service;
 
 import cloud.igibgo.igibgobackend.entity.*;
 import cloud.igibgo.igibgobackend.entity.Collection;
+import cloud.igibgo.igibgobackend.entity.response.UserNoteBookmark;
 import cloud.igibgo.igibgobackend.mapper.*;
 import cloud.igibgo.igibgobackend.util.UploadUtil;
 import jakarta.annotation.Resource;
-import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -116,22 +117,25 @@ public class NoteService {
     @Resource
     private NoteLikeMapper noteLikeMapper;
 
-    private void updateLikeCount(String noteId) {
+    @Resource
+    private NoteBookmarkMapper noteBookmarkMapper;
+
+    void updateLikeCount(String noteId) {
         Long likeCount = noteLikeMapper.countByNoteNoteId(noteId);
         noteMapper.updateLikeCountByNoteId(noteId, likeCount);
     }
 
-    private void updateViewCount(String noteId) {
+    void updateViewCount(String noteId) {
         Long viewCount = noteViewMapper.countByNoteNoteId(noteId);
         noteMapper.updateViewCountByNoteId(noteId, viewCount);
     }
 
-    private void updateSaveCount(String noteId) {
+    void updateSaveCount(String noteId) {
         Long saveCount = noteBookmarkMapper.countByNoteNoteId(noteId);
         noteMapper.updateSaveCountByNoteId(noteId, saveCount);
     }
 
-    private void updateReplyCount(String noteId) {
+    void updateReplyCount(String noteId) {
         Long replyCount = noteReplyMapper.countByNoteNoteId(noteId);
         noteMapper.updateReplyCountByNoteId(noteId, replyCount);
     }
@@ -212,38 +216,6 @@ public class NoteService {
 
     public Page<Note> getNotesByTitle(String title, PageRequest pageRequest) {
         return noteMapper.findAllByTitle(title, pageRequest);
-    }
-
-    @Resource
-    private NoteBookmarkMapper noteBookmarkMapper;
-
-    public void bookmarkNote(String noteId, Long userId, List<String> folder) {
-        // Check 1: if the user exists
-        Optional<FUser> userOptional = fUserMapper.findById(userId);
-        if (userOptional.isEmpty()) {
-            throw new IllegalArgumentException("User not found");
-        }
-        // Check 2: if the note exists
-        Optional<Note> noteOptional = noteMapper.findById(noteId);
-        if (noteOptional.isEmpty()) {
-            throw new IllegalArgumentException("Note not found");
-        }
-        Note note = noteOptional.get();
-        FUser user = userOptional.get();
-        // 2. create a list of note bookmarks
-        List<NoteBookmark> noteBookmarks = folder.parallelStream().map(f -> {
-            NoteBookmark noteBookmark = new NoteBookmark();
-            noteBookmark.note = note;
-            noteBookmark.user = user;
-            noteBookmark.folder = f;
-            return noteBookmark;
-        }).toList();
-        // 3. remove all records of the note given noteId and userId
-        noteBookmarkMapper.deleteNoteBookmarksByNoteNoteIdAndUserUserId(noteId, userId);
-        // 4. save the bookmark
-        noteBookmarkMapper.saveAll(noteBookmarks);
-        // 5. update save count
-        updateSaveCount(noteId);
     }
 
 
@@ -340,18 +312,12 @@ public class NoteService {
     }
 
     public Boolean isSaved(String noteId, Long userId) {
-        return !noteBookmarkMapper.findNoteBookmarksByNoteNoteIdAndUserUserId(noteId, userId).isEmpty();
+        return !noteBookmarkMapper.findAllByNoteNoteIdAndBookmarkUserUserId(noteId, userId).isEmpty();
     }
 
     public Boolean isReplied(String noteId, Long userId) {
         return !noteReplyMapper.findNoteRepliesByNoteNoteIdAndAuthorUserId(noteId, userId).isEmpty();
     }
 
-    public List<NoteBookmark> getBookmarksByUserId(Long userId) {
-        return noteBookmarkMapper.findAllByUserUserIdAndFolderIsNotNull(userId);
-    }
 
-    public List<NoteBookmark> getBookmarksByUserIdAndNoteId(Long userId, String noteId) {
-        return noteBookmarkMapper.findAllByUserUserIdAndNoteNoteId(userId, noteId);
-    }
 }
