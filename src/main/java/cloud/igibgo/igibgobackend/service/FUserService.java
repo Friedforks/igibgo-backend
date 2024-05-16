@@ -85,10 +85,10 @@ public class FUserService {
         // Check 1: check the auth code
         String redisValue = redisTemplate.opsForValue().get("register" + email);// redis value contains password + auth code
         if (redisValue == null) {
-            return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Auth code expired", null);
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Wrong email entered", null);
         }
         if (!redisValue.equals(password + authCode)) {
-            return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Auth code incorrect", null);
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Auth code incorrect or wrong information was entered.", null);
         }
         //1. Delete the auth code
         redisTemplate.delete("register" + email);
@@ -98,7 +98,7 @@ public class FUserService {
             Path tempAvatarFile = Files.createTempFile(null, avatarFileName);
             avatar.transferTo(tempAvatarFile);
             // time-consuming
-            String avatarUrl = uploadUtil.upload(tempAvatarFile.toFile(), avatarFileName, "avatar/");
+            String avatarUrl = uploadUtil.upload(tempAvatarFile.toFile()    , avatarFileName, "avatar/");
             // 3. encrypt password
             password = PasswordUtil.hashPassword(password);
             //4. Save to db

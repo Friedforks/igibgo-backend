@@ -2,7 +2,6 @@ package cloud.igibgo.igibgobackend.service;
 
 import cloud.igibgo.igibgobackend.entity.*;
 import cloud.igibgo.igibgobackend.entity.Collection;
-import cloud.igibgo.igibgobackend.entity.response.UserNoteBookmark;
 import cloud.igibgo.igibgobackend.mapper.*;
 import cloud.igibgo.igibgobackend.util.UploadUtil;
 import jakarta.annotation.Resource;
@@ -19,7 +18,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -219,9 +217,12 @@ public class NoteService {
     }
 
 
-    public List<String> getAllTags() {
+    public Set<String> getAllTags() {
         // fetch all distinct tag content from db
-        return noteMapper.findDistinctTags();
+        List<String> tags = noteMapper.findAllTags();
+        // convert to set to remove duplicate:
+        Set<String> distinctTags  = new HashSet<>(tags);
+        return distinctTags;
     }
 
     public void deleteNote(Long author, String noteId) {

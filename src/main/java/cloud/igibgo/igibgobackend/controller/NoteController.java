@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Slf4j
 @RestController
@@ -106,14 +107,14 @@ public class NoteController {
     }
 
     @GetMapping("/get/allTags")
-    APIResponse<List<String>> getAllTags() {
+    APIResponse<Set<String>> getAllTags() {
         try {
             return new APIResponse<>(ResponseCodes.SUCCESS, null, noteService.getAllTags());
         } catch (DataAccessException e) {
-            log.error("Database query error: " + e.getMessage(), e);
+            log.error("Database query error: {}", e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
         } catch (Exception e) {
-            log.error("Unhandled error: " + e.getMessage(), e);
+            log.error("Unhandled error: {}", e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }

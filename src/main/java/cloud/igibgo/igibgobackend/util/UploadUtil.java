@@ -135,8 +135,8 @@ public class UploadUtil {
     public  String upload(File file, String fileName, String path) throws IllegalArgumentException {
         // 检查文件大小
         if (!checkFileSize(file)) {
-            log.error("File size exceeds 5G");
-            throw new IllegalArgumentException("File size exceeds 5G");
+            log.error("File size exceeds 5GB");
+            throw new IllegalArgumentException("File size exceeds 5GB");
         }
 
         // 使用高级接口必须先保证本进程存在一个 TransferManager 实例，如果没有则创建

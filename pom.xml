@@ -10,7 +10,7 @@
     </parent>
     <groupId>cloud.igibgo</groupId>
     <artifactId>igibgo-backend</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.2-Beta</version>
     <name>igibgo-backend</name>
     <description>igibgo-backend</description>
     <properties>
