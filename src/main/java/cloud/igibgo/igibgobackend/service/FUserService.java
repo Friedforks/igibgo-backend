@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -95,7 +96,8 @@ public class FUserService {
         //2. Upload avatar
         String avatarFileName = UUID.randomUUID() + Objects.requireNonNull(avatar.getOriginalFilename()).substring(avatar.getOriginalFilename().lastIndexOf("."));
         try {
-            Path tempAvatarFile = Files.createTempFile(null, avatarFileName);
+            Path tmpDir = Paths.get("/home/java/igibgo/tmpDir");
+            Path tempAvatarFile = Files.createTempFile(tmpDir,null, avatarFileName);
             avatar.transferTo(tempAvatarFile);
             // time-consuming
             String avatarUrl = uploadUtil.upload(tempAvatarFile.toFile()    , avatarFileName, "avatar/");

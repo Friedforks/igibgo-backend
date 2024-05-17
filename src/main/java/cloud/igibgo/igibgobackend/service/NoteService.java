@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 @Slf4j
@@ -84,7 +85,8 @@ public class NoteService {
             String generatedNoteId = UUID.randomUUID().toString();
             String newFilename = generatedNoteId + "." + suffix;
             // 2. create the note folder if empty
-            Path tmpNoteFile = Files.createTempFile(null, newFilename);
+            Path tmpDir= Paths.get("/home/java/igibgo/tmpDir");
+            Path tmpNoteFile = Files.createTempFile(tmpDir,null, newFilename);
             note.transferTo(tmpNoteFile);
             // 3. upload note to COS
             String url = uploadUtil.upload(tmpNoteFile.toFile(), newFilename, "note/");
