@@ -28,13 +28,13 @@ public class CollectionController {
             collectionService.addCollection(userId, collectionName);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
         } catch (IllegalArgumentException e) {
-            log.error("Illegal argument: " + e.getMessage(), e);
+            log.error("Illegal argument: {}", e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
         } catch (DataAccessException e) {
-            log.error("Database query error: " + e.getMessage(), e);
+            log.error("Database query error: {}", e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
         } catch (Exception e) {
-            log.error("Unhandled error: " + e.getMessage(), e);
+            log.error("Unhandled error: {}", e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
@@ -43,10 +43,10 @@ public class CollectionController {
         try {
             return new APIResponse<>(ResponseCodes.SUCCESS, null, collectionService.getCollectionsByUser(userId));
         } catch (DataAccessException e) {
-            log.error("Database query error: " + e.getMessage(), e);
+            log.error("Database query error: {}", e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
         } catch (Exception e) {
-            log.error("Unhandled error: " + e.getMessage(), e);
+            log.error("Unhandled error: {}", e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }

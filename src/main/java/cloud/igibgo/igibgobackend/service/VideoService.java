@@ -3,6 +3,7 @@ package cloud.igibgo.igibgobackend.service;
 import cloud.igibgo.igibgobackend.entity.*;
 import cloud.igibgo.igibgobackend.entity.Collection;
 import cloud.igibgo.igibgobackend.mapper.*;
+import cloud.igibgo.igibgobackend.util.ConstantUtil;
 import cloud.igibgo.igibgobackend.util.UploadUtil;
 import jakarta.annotation.Resource;
 import org.springframework.data.domain.Page;
@@ -12,6 +13,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 @Service
@@ -73,23 +77,24 @@ public class VideoService {
             // Check 3: file type
             String originalFilename = video.getOriginalFilename();
             assert originalFilename != null;
-            String suffix = originalFilename.substring(originalFilename.lastIndexOf(".") + 1);
-            if (!suffix.equalsIgnoreCase("mp4") && !suffix.equalsIgnoreCase("flv") && !suffix.equalsIgnoreCase("mov")) {
+            String videoSuffix = originalFilename.substring(originalFilename.lastIndexOf(".") + 1);
+            if (!videoSuffix.equalsIgnoreCase("mp4") && !videoSuffix.equalsIgnoreCase("flv") && !videoSuffix.equalsIgnoreCase("mov")) {
                 throw new IllegalArgumentException("File type not supported, please upload video in mp4, mov or flv format");
             }
             // 1. convert video to file
-            File videoFile = new File("video/" + originalFilename);
-            video.transferTo(videoFile);
-            // 2. upload video to COS
             String generatedVideoId = UUID.randomUUID().toString();
-            String newFilename = generatedVideoId + "." + suffix;
-            String url = uploadUtil.upload(videoFile, newFilename, "video/");
+            String newFilename = generatedVideoId + "." + videoSuffix;
+            Path tmpDir= Paths.get(ConstantUtil.tmpPath);
+            Path tmpVideoFile = Files.createTempFile(tmpDir,null, newFilename);
+            video.transferTo(tmpVideoFile);
+            // 2. upload video to COS
+            String url = uploadUtil.upload(tmpVideoFile.toFile(), newFilename, "video/");
             // 3. convert video cover to file
-            File coverFile = new File("video-cover/" + originalFilename);
-            videoCover.transferTo(coverFile);
+            String newCoverFilename = generatedVideoId + "-cover.png";
+            Path tmpCoverFile = Files.createTempFile(tmpDir,null, newCoverFilename);
+            videoCover.transferTo(tmpCoverFile);
             // 4. upload video cover to COS
-            String newCoverFilename = generatedVideoId + "." + suffix;
-            String coverUrl = uploadUtil.upload(coverFile, newCoverFilename, "video-cover/");
+            String coverUrl = uploadUtil.upload(tmpCoverFile.toFile(), newCoverFilename, "video-cover/");
             // 5. fetch collection (if collection id is not null)
             Collection c = collection.get();
             Video videoInstance = new Video();

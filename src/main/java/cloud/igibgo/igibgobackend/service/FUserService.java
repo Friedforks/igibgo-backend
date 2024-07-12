@@ -5,12 +5,10 @@ import cloud.igibgo.igibgobackend.entity.FUser;
 import cloud.igibgo.igibgobackend.entity.NoteBookmark;
 import cloud.igibgo.igibgobackend.entity.ResponseCodes;
 import cloud.igibgo.igibgobackend.mapper.*;
-import cloud.igibgo.igibgobackend.util.MailUtil;
-import cloud.igibgo.igibgobackend.util.PasswordUtil;
-import cloud.igibgo.igibgobackend.util.StringUtil;
-import cloud.igibgo.igibgobackend.util.UploadUtil;
+import cloud.igibgo.igibgobackend.util.*;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tomcat.util.bcel.Const;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -86,7 +84,7 @@ public class FUserService {
         // Check 1: check the auth code
         String redisValue = redisTemplate.opsForValue().get("register" + email);// redis value contains password + auth code
         if (redisValue == null) {
-            return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Wrong email entered", null);
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Wrong email entered or the auth code has expired.", null);
         }
         if (!redisValue.equals(password + authCode)) {
             return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Auth code incorrect or wrong information was entered.", null);
@@ -96,7 +94,7 @@ public class FUserService {
         //2. Upload avatar
         String avatarFileName = UUID.randomUUID() + Objects.requireNonNull(avatar.getOriginalFilename()).substring(avatar.getOriginalFilename().lastIndexOf("."));
         try {
-            Path tmpDir = Paths.get("/home/java/igibgo/tmpDir");
+            Path tmpDir = Paths.get(ConstantUtil.tmpPath);
             Path tempAvatarFile = Files.createTempFile(tmpDir,null, avatarFileName);
             avatar.transferTo(tempAvatarFile);
             // time-consuming
@@ -105,7 +103,7 @@ public class FUserService {
             password = PasswordUtil.hashPassword(password);
             //4. Save to db
             boolean isTeacher;
-            isTeacher = !StringUtil.isContainNumber(password);
+            isTeacher = email.chars().anyMatch(Character::isDigit);
             FUser fUser = new FUser(
                     username,
                     avatarUrl,
@@ -255,5 +253,40 @@ public class FUserService {
         // total note view
         Long viewCount = noteViewMapper.countByAuthorId(userId);
         return new APIResponse<>(ResponseCodes.SUCCESS, null, viewCount);
+    }
+
+    public APIResponse<FUser> updateAvatar(String token, MultipartFile avatar){
+        // check 1: if token exists
+        String email = redisTemplate.opsForValue().get(token);
+        if (email == null) {
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, "User not logged in", null);
+        }
+        // check 2: if user exists
+        Optional<FUser> fUserOptional = fUserMapper.findByEmail(email);
+        if (fUserOptional.isEmpty()) {
+            return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null);
+        }
+        FUser fUser = fUserOptional.get();
+        // 1. upload the new avatar
+        String avatarFileName= UUID.randomUUID() + Objects.requireNonNull(avatar.getOriginalFilename()).substring(avatar.getOriginalFilename().lastIndexOf("."));
+        try{
+            Path tmpDir = Paths.get(ConstantUtil.tmpPath);
+            Path tempAvatarFile = Files.createTempFile(tmpDir,null, avatarFileName);
+            avatar.transferTo(tempAvatarFile);
+            // parallel processing (2,3) and (4) using virtual threads
+            // time-consuming
+            // for example avatarUrl="https://igibgo-1306825637.cos.ap-shanghai.myqcloud.com/avatar/1b9d6bc7-4f3f-4f3f-8f3f-4f3f8f3f4f3f.jpg"
+            String avatarUrl = uploadUtil.upload(tempAvatarFile.toFile(), avatarFileName, "avatar/");
+            // 2. update the avatar
+            fUser.avatarUrl = avatarUrl;
+            // 3. save to db
+            fUserMapper.save(fUser);
+            // 4. delete the old avatar
+            String oldAvatarFileName = fUser.avatarUrl.substring(fUser.avatarUrl.lastIndexOf("/") + 1);
+            uploadUtil.deleteObject("avatar/" + oldAvatarFileName);
+        } catch (IOException e) {
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
+        }
+        return new APIResponse<>(ResponseCodes.SUCCESS, null, fUser);
     }
 }

@@ -3,6 +3,7 @@ package cloud.igibgo.igibgobackend.service;
 import cloud.igibgo.igibgobackend.entity.*;
 import cloud.igibgo.igibgobackend.entity.Collection;
 import cloud.igibgo.igibgobackend.mapper.*;
+import cloud.igibgo.igibgobackend.util.ConstantUtil;
 import cloud.igibgo.igibgobackend.util.UploadUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -85,7 +86,7 @@ public class NoteService {
             String generatedNoteId = UUID.randomUUID().toString();
             String newFilename = generatedNoteId + "." + suffix;
             // 2. create the note folder if empty
-            Path tmpDir= Paths.get("/home/java/igibgo/tmpDir");
+            Path tmpDir= Paths.get(ConstantUtil.tmpPath);
             Path tmpNoteFile = Files.createTempFile(tmpDir,null, newFilename);
             note.transferTo(tmpNoteFile);
             // 3. upload note to COS

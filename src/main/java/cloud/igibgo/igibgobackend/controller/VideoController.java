@@ -12,11 +12,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 @Slf4j
@@ -27,7 +29,6 @@ public class VideoController {
     private VideoService videoService;
 
     // video viewer side
-
     /**
      * get videos in order
      *
@@ -199,16 +200,17 @@ public class VideoController {
      * @param title title
      * @return no response
      */
-    @GetMapping("/upload")
+    @PostMapping("/upload")
     APIResponse<String> uploadVideo(MultipartFile video,
                                     MultipartFile videoCover,
                                     Long authorId,
                                     Long collectionId,
                                     String title,
-                                    List<String> tags) {
+                                    String tags) {
         try {
             // 1. upload video
-            videoService.uploadVideo(video, videoCover, authorId, collectionId, title,tags);
+            List<String> tagList = Arrays.asList(tags.split(","));
+            videoService.uploadVideo(video, videoCover, authorId, collectionId, title,tagList);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
         } catch (DataAccessException e) {
             log.error("Database query error", e);

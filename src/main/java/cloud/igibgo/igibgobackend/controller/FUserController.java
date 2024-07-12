@@ -87,7 +87,6 @@ public class FUserController {
     public APIResponse<FUser> findFUser(Long userId, String token){
         return fUserService.findFUser(userId,token);
     }
-
     @PostMapping("/update")
     public APIResponse<FUser> updateFUser(FUser fUser){
         return fUserService.updateFUser(fUser);
@@ -108,4 +107,10 @@ public class FUserController {
     public APIResponse<Long> totalViews(Long userId){
         return fUserService.totalViews(userId);
     }
+
+    @PostMapping("/update/avatar")
+    public APIResponse<FUser> updateAvatar(String token, MultipartFile avatar){
+        return fUserService.updateAvatar(token, avatar);
+    }
+
 }

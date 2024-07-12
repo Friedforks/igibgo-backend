@@ -80,6 +80,7 @@ create table video
     like_count      bigint    not null default 0,
     save_count      bigint    not null default 0,
     view_count      bigint    not null default 0,
+    reply_count     bigint    not null default 0,
     collection_id   int       not null references collection (collection_id) on delete cascade,
     video_url       text      not null,
     video_cover_url text      not null,

@@ -98,10 +98,10 @@ public class NoteController {
             PageRequest pageRequest = PageRequest.of(page, size, Sort.by(direction, orderBy));
             return new APIResponse<>(ResponseCodes.SUCCESS, null, noteService.getNotesByTags(tagList, pageRequest));
         } catch (DataAccessException e) {
-            log.error("Database query error: " + e.getMessage(), e);
+            log.error("Database query error: {}", e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
         } catch (Exception e) {
-            log.error("Unhandled error: " + e.getMessage(), e);
+            log.error("Unhandled error: {}", e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }

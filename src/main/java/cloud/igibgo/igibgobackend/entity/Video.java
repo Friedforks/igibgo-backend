@@ -11,7 +11,6 @@ import java.util.TimeZone;
 @Table(name = "video")
 public class Video {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     public String videoId;
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "author")
