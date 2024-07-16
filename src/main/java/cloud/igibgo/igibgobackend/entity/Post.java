@@ -18,7 +18,7 @@ public class Post {
     public FUser author;
     public Long likeCount = 0L;
     public Long viewCount = 0L;
-    public LocalDateTime uploadDate = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
+    public LocalDateTime uploadDate = LocalDateTime.now();
     public String postContent;
     public int postType;
     public String title;

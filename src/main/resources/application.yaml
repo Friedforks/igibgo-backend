@@ -44,8 +44,8 @@ cos:
     #    igibgo-bucket-1303865496
     myoss-1303865496
   publicAccessUrl:
-    #    "https://igibgo-bucket-1303865496.cos.ap-shanghai.myqcloud.com"
-    "https://myoss-1303865496.cos.accelerate.myqcloud.com"
+#        "https://igibgo-bucket-1303865496.cos.ap-shanghai.myqcloud.com"
+    "https://myoss-1303865496.cos.ap-shanghai.myqcloud.com"
 
 
 

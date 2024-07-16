@@ -3,6 +3,7 @@ package cloud.igibgo.igibgobackend.entity;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TimeZone;
@@ -23,7 +24,7 @@ public class Video {
     public Collection collection;
     public String videoUrl;
     public String videoCoverUrl;
-    public LocalDateTime uploadDate = LocalDateTime.now(TimeZone.getTimeZone("Asia/Shanghai").toZoneId());
+    public LocalDateTime uploadDate = LocalDateTime.now();
     public String title;
 
     @OneToMany(mappedBy = "video", cascade = CascadeType.ALL, orphanRemoval = true)

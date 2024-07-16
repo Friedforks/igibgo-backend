@@ -21,5 +21,5 @@ public class NoteReply {
     @JoinColumn(name = "author")
     public FUser author;
     public String replyContent;
-    public LocalDateTime replyDate = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
+    public LocalDateTime replyDate = LocalDateTime.now();
 }

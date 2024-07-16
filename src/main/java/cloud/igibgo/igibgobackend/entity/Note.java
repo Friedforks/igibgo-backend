@@ -29,7 +29,7 @@ public class Note {
     public Long replyCount=0L;
 
     public String noteUrl;
-    public LocalDateTime uploadDate = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
+    public LocalDateTime uploadDate = LocalDateTime.now();
     public String title;
 
     @OneToMany(mappedBy = "note", fetch = FetchType.EAGER)

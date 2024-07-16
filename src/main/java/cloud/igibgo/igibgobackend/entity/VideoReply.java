@@ -15,7 +15,7 @@ public class VideoReply {
     @JoinColumn(name = "video_id")
     public Video video;
     public String replyContent;
-    public LocalDateTime replyDate = LocalDateTime.now(ZoneId.of("Asia/Shanghai"));
+    public LocalDateTime replyDate = LocalDateTime.now();
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "author")
     public FUser author;
