@@ -133,6 +133,7 @@ public class VideoService {
     }
 
     public Video getVideoByVideoId(String videoId) {
+        // TODO: Update the mechanism for incrementing view count (add video view table)
         Optional<Video> videoOptional = videoMapper.findById(videoId);
         // Check 1: if the video exists
         if (videoOptional.isEmpty()) {

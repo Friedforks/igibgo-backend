@@ -11,10 +11,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -129,7 +126,7 @@ public class VideoController {
         }
     }
 
-    @GetMapping("/reply")
+    @PostMapping("/reply")
     APIResponse<Void> replyVideo(String videoId, String replyContent, Long authorId) {
         try {
             videoService.replyVideo(videoId, replyContent, authorId);
@@ -147,8 +144,8 @@ public class VideoController {
         }
     }
 
-    @GetMapping("/delete/reply")
-    APIResponse<String> deleteReply(Long replyId, Long authorId) {
+    @DeleteMapping("/delete/reply")
+    APIResponse<Void> deleteReply(Long replyId, Long authorId) {
         try {
             videoService.deleteReply(replyId, authorId);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, null);

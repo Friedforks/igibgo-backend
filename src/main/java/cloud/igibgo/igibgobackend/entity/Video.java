@@ -1,5 +1,6 @@
 package cloud.igibgo.igibgobackend.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -27,9 +28,11 @@ public class Video {
     public LocalDateTime uploadDate = LocalDateTime.now();
     public String title;
 
+    @JsonManagedReference
     @OneToMany(mappedBy = "video", cascade = CascadeType.ALL, orphanRemoval = true)
     public List<VideoReply> replies= new ArrayList<>();
 
+    @JsonManagedReference
     @OneToMany(mappedBy = "video", cascade = CascadeType.ALL, orphanRemoval = true)
     public List<VideoTag> tags = new ArrayList<>();
 }

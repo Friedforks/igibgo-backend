@@ -1,5 +1,6 @@
 package cloud.igibgo.igibgobackend.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 @Entity
@@ -10,6 +11,7 @@ public class VideoTag {
     public Long videoTagId;
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "video_id")
+    @JsonBackReference
     public Video video;
     public String tagText;
 }
