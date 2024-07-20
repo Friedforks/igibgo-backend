@@ -6,6 +6,7 @@ import cloud.igibgo.igibgobackend.mapper.*;
 import cloud.igibgo.igibgobackend.util.ConstantUtil;
 import cloud.igibgo.igibgobackend.util.UploadUtil;
 import jakarta.annotation.Resource;
+import jakarta.persistence.PreUpdate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -132,7 +133,15 @@ public class VideoService {
         }
     }
 
-    public Video getVideoByVideoId(String videoId) {
+    @Resource
+    private VideoViewMapepr videoViewMapepr;
+
+    private void updateViewCount(String videoId){
+        Long viewCount=videoViewMapepr.countByVideoId(videoId);
+        videoMapper.updateViewCountByVideoId(videoId,viewCount);
+    }
+
+    public Video getVideoByVideoId(String videoId, Long userId) {
         // TODO: Update the mechanism for incrementing view count (add video view table)
         Optional<Video> videoOptional = videoMapper.findById(videoId);
         // Check 1: if the video exists
@@ -141,10 +150,26 @@ public class VideoService {
         }
         // 1. get the video
         Video video = videoOptional.get();
-        // 2. increment the view count
-        video.viewCount++;
-        // 3. save the video to db
-        videoMapper.save(video);
+        // 2. get the user
+        Optional<FUser> userOptional = fUserMapper.findById(userId);
+        // Check 2: if the user exists
+        if(userOptional.isEmpty()){
+            throw new IllegalArgumentException("User not found with the given user id");
+        }
+        FUser user = userOptional.get();
+        // Check 3: if the user has already viewed the video
+        Optional<VideoView> videoViewOptional=videoViewMapepr.findByVideoIdAndUserId(videoId,userId);
+        if(videoViewOptional.isPresent()){
+            return video;
+        }
+        // 3. save the new video view record
+        VideoView videoView = new VideoView();
+        videoView.video = video;
+        videoView.user = user;
+        videoViewMapepr.save(videoView);
+
+        // 4. update the view count
+        updateViewCount(videoId);
         return video;
     }
 

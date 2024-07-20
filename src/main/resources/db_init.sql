@@ -112,6 +112,13 @@ create table video_bookmark
     folder            text
 );
 
+create table video_view
+(
+    video_view_id bigserial primary key not null,
+    video_id      text                  not null references video (video_id) on delete cascade,
+    user_id       bigint                not null references f_user (user_id) on delete cascade
+);
+
 create table post
 (
     post_id      text      not null primary key,

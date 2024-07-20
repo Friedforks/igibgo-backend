@@ -211,6 +211,7 @@ public class NoteService {
         noteView.note = note;
         noteView.user = user;
         noteViewMapper.save(noteView);
+        // 4. update the view count for note table
         updateViewCount(noteId);
         return note;
     }

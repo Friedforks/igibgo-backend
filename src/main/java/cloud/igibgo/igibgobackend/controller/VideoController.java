@@ -91,12 +91,12 @@ public class VideoController {
     }
 
     @GetMapping("/get/videoId")
-    APIResponse<Video> getVideoWithRepliesTags(String videoId) {
+    APIResponse<Video> getVideoWithRepliesTags(String videoId,Long userId) {
         try {
             if(videoId == null){
                 return new APIResponse<>(ResponseCodes.BAD_REQUEST, "videoId cannot be null", null);
             }
-            Video video= videoService.getVideoByVideoId(videoId);
+            Video video= videoService.getVideoByVideoId(videoId,userId);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, video);
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);
