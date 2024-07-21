@@ -61,7 +61,6 @@ public class NoteService {
     @Resource
     private UploadUtil uploadUtil;
 
-    // TODO Optimize this method to make save to COS and db in parallel
     public void uploadNote(MultipartFile note, Long authorId, Long collectionId, String title, List<String> tags) throws IOException {
         Optional<FUser> author = fUserMapper.findById(authorId);
         // Check 1: if the author  exist

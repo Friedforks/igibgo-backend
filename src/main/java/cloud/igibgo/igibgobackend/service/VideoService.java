@@ -18,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.*;
 
 @Service
 public class VideoService {
@@ -54,15 +55,12 @@ public class VideoService {
     @Resource
     private UploadUtil uploadUtil;
 
-    /**
-     * TODO Optimize this method to make video/videoCover save to COS and db in parallel
-     */
     public void uploadVideo(MultipartFile video,
                             MultipartFile videoCover,
                             Long authorId,
                             Long collectionId,
                             String title,
-                            List<String> tags) throws IOException {
+                            List<String> tags) throws IOException, ExecutionException, InterruptedException {
         Optional<FUser> author = fUserMapper.findById(authorId);
         // Check 1: if the author  exist
         if (author.isPresent()) {
@@ -82,40 +80,56 @@ public class VideoService {
             if (!videoSuffix.equalsIgnoreCase("mp4") && !videoSuffix.equalsIgnoreCase("flv") && !videoSuffix.equalsIgnoreCase("mov")) {
                 throw new IllegalArgumentException("File type not supported, please upload video in mp4, mov or flv format");
             }
-            // 1. convert video to file
+
+            ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+
             String generatedVideoId = UUID.randomUUID().toString();
-            String newFilename = generatedVideoId + "." + videoSuffix;
-            Path tmpDir= Paths.get(ConstantUtil.tmpPath);
-            Path tmpVideoFile = Files.createTempFile(tmpDir,null, newFilename);
-            video.transferTo(tmpVideoFile);
-            // 2. upload video to COS
-            String url = uploadUtil.upload(tmpVideoFile.toFile(), newFilename, "video/");
-            // 3. convert video cover to file
-            String newCoverFilename = generatedVideoId + "-cover.png";
-            Path tmpCoverFile = Files.createTempFile(tmpDir,null, newCoverFilename);
-            videoCover.transferTo(tmpCoverFile);
-            // 4. upload video cover to COS
-            String coverUrl = uploadUtil.upload(tmpCoverFile.toFile(), newCoverFilename, "video-cover/");
-            // 5. fetch collection (if collection id is not null)
+            Callable<String> uploadVideoTask = () -> {
+                // 1.1 convert video to file
+                String newFilename = generatedVideoId + "." + videoSuffix;
+                Path tmpDir = Paths.get(ConstantUtil.tmpPath);
+                Path tmpVideoFile = Files.createTempFile(tmpDir, null, newFilename);
+                video.transferTo(tmpVideoFile);
+                // 1.2 upload video to COS
+                return uploadUtil.upload(tmpVideoFile.toFile(), newFilename, "video/");
+            };
+            Callable<String> uploadCoverTask = () -> {
+                // 2.1 convert video cover to file
+                String newCoverFilename = generatedVideoId + "-cover.png";
+                Path tmpDir = Paths.get(ConstantUtil.tmpPath);
+                Path tmpCoverFile = Files.createTempFile(tmpDir, null, newCoverFilename);
+                videoCover.transferTo(tmpCoverFile);
+                // 2.2 upload video cover to COS
+                return uploadUtil.upload(tmpCoverFile.toFile(), newCoverFilename, "video-cover/");
+            };
+
+            // 3. submit tasks for execution
+            String videoUrl = executor.submit(uploadVideoTask).get();
+            String coverUrl = executor.submit(uploadCoverTask).get();
+
+            // 4. fetch collection (if collection id is not null)
             Collection c = collection.get();
-            Video videoInstance = new Video();
-            videoInstance.videoId = generatedVideoId;
-            videoInstance.author = author.get();
-            videoInstance.collection = c;
-            videoInstance.title = title;
-            videoInstance.videoUrl = url;
-            videoInstance.videoCoverUrl = coverUrl;
-            // 6. save note to db
-            videoMapper.save(videoInstance);
-            //7. Save tags
+            Video videoRecord = new Video();
+            videoRecord.videoId = generatedVideoId;
+            videoRecord.author = author.get();
+            videoRecord.collection = c;
+            videoRecord.title = title;
+            videoRecord.videoUrl = videoUrl;
+            videoRecord.videoCoverUrl = coverUrl;
+
+            // 5. save video to db
+            videoMapper.save(videoRecord);
+
+            // 6. Save tags
             List<VideoTag> videoTags = new ArrayList<>();
             for (String tag : tags) {
                 VideoTag videoTag = new VideoTag();
-                videoTag.video = videoInstance;
+                videoTag.video = videoRecord;
                 videoTag.tagText = tag;
                 videoTags.add(videoTag);
             }
             videoTagMapper.saveAll(videoTags);
+            executor.shutdown();
         } else {
             throw new IllegalArgumentException("Author not found");
         }
@@ -136,13 +150,12 @@ public class VideoService {
     @Resource
     private VideoViewMapepr videoViewMapepr;
 
-    private void updateViewCount(String videoId){
-        Long viewCount=videoViewMapepr.countByVideoId(videoId);
-        videoMapper.updateViewCountByVideoId(videoId,viewCount);
+    private void updateViewCount(String videoId) {
+        Long viewCount = videoViewMapepr.countByVideoId(videoId);
+        videoMapper.updateViewCountByVideoId(videoId, viewCount);
     }
 
     public Video getVideoByVideoId(String videoId, Long userId) {
-        // TODO: Update the mechanism for incrementing view count (add video view table)
         Optional<Video> videoOptional = videoMapper.findById(videoId);
         // Check 1: if the video exists
         if (videoOptional.isEmpty()) {
@@ -153,13 +166,13 @@ public class VideoService {
         // 2. get the user
         Optional<FUser> userOptional = fUserMapper.findById(userId);
         // Check 2: if the user exists
-        if(userOptional.isEmpty()){
+        if (userOptional.isEmpty()) {
             throw new IllegalArgumentException("User not found with the given user id");
         }
         FUser user = userOptional.get();
         // Check 3: if the user has already viewed the video
-        Optional<VideoView> videoViewOptional=videoViewMapepr.findByVideoIdAndUserId(videoId,userId);
-        if(videoViewOptional.isPresent()){
+        Optional<VideoView> videoViewOptional = videoViewMapepr.findByVideoIdAndUserId(videoId, userId);
+        if (videoViewOptional.isPresent()) {
             return video;
         }
         // 3. save the new video view record
