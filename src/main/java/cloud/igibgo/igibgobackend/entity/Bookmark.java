@@ -20,6 +20,10 @@ public class Bookmark {
     @JsonManagedReference
     public List<NoteBookmark> noteBookmarks;
 
+    @OneToMany(mappedBy = "bookmark", fetch = FetchType.EAGER)
+    @JsonManagedReference
+    public List<VideoBookmark> videoBookmarks;
+
     public String bookmarkName;
 
     // override equal: only compare bookmarkName

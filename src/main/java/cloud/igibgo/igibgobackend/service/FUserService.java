@@ -1,11 +1,9 @@
 package cloud.igibgo.igibgobackend.service;
 
-import cloud.igibgo.igibgobackend.entity.APIResponse;
-import cloud.igibgo.igibgobackend.entity.FUser;
-import cloud.igibgo.igibgobackend.entity.NoteBookmark;
-import cloud.igibgo.igibgobackend.entity.ResponseCodes;
+import cloud.igibgo.igibgobackend.entity.*;
 import cloud.igibgo.igibgobackend.mapper.*;
 import cloud.igibgo.igibgobackend.util.*;
+import com.squareup.okhttp.Call;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.bcel.Const;
@@ -17,10 +15,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 @Slf4j
 @Service
@@ -219,19 +218,27 @@ public class FUserService {
     @Resource
     private NoteLikeMapper noteLikeMapper;
 
-    public APIResponse<Long> totalLikes(Long authorId) {
+    @Resource
+    private VideoLikeMapper videoLikeMapper;
+    public APIResponse<Long> totalLikes(Long authorId) throws ExecutionException, InterruptedException {
         // check 1: if user exists
         if (fUserMapper.findById(authorId).isEmpty()) {
             return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null);
         }
-        // total note like
-        Long likeCount = noteLikeMapper.countByAuthorId(authorId);
-        return new APIResponse<>(ResponseCodes.SUCCESS, null, likeCount);
+        ExecutorService executor=Executors.newVirtualThreadPerTaskExecutor();
+        // 1.1 total note like
+        Callable<Long> noteLikeCount=()->noteLikeMapper.countByAuthorId(authorId);
+        // 1.2 total video like
+        Callable<Long> videoLikeCount=()->videoLikeMapper.countByAuthorId(authorId);
+        // 2. add total like
+        Long totalLike=executor.submit(noteLikeCount).get()+executor.submit(videoLikeCount).get();
+        return new APIResponse<>(ResponseCodes.SUCCESS, null, totalLike);
     }
 
     @Resource
     private NoteBookmarkMapper noteBookmarkMapper;
 
+    // TODO: add saves from video
     public APIResponse<Long> totalSaves(Long userId) {
         // check 1: if user exists
         if (fUserMapper.findById(userId).isEmpty()) {
@@ -288,5 +295,12 @@ public class FUserService {
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
         return new APIResponse<>(ResponseCodes.SUCCESS, null, fUser);
+    }
+
+    @Resource
+    private BookmarkMapper bookmarkMapper;
+
+    public List<Bookmark> getBookmarksByUserId(Long userId) {
+        return bookmarkMapper.findAllByUserUserId(userId);
     }
 }

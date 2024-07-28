@@ -1,7 +1,6 @@
 package cloud.igibgo.igibgobackend.controller;
 
 import cloud.igibgo.igibgobackend.entity.*;
-import cloud.igibgo.igibgobackend.entity.response.UserNoteBookmark;
 import cloud.igibgo.igibgobackend.mapper.NoteMapper;
 import cloud.igibgo.igibgobackend.service.NoteService;
 import jakarta.annotation.Resource;
@@ -16,7 +15,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 @Slf4j
@@ -286,53 +284,6 @@ public class NoteController {
         }
     }
 
-    @GetMapping("/total/like")
-    APIResponse<Long> getTotalLikes(String noteId) {
-        try {
-            return new APIResponse<>(ResponseCodes.SUCCESS, null, noteService.noteTotalLike(noteId));
-        } catch (IllegalArgumentException e) {
-            log.error("Illegal argument: " + e.getMessage(), e);
-            return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
-        } catch (DataAccessException e) {
-            log.error("Database query error: " + e.getMessage(), e);
-            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
-        } catch (Exception e) {
-            log.error("Unhandled error: " + e.getMessage(), e);
-            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
-        }
-    }
-
-    @GetMapping("/total/view")
-    APIResponse<Long> getTotalViews(String noteId) {
-        try {
-            return new APIResponse<>(ResponseCodes.SUCCESS, null, noteService.noteTotalView(noteId));
-        } catch (IllegalArgumentException e) {
-            log.error("Illegal argument: " + e.getMessage(), e);
-            return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
-        } catch (DataAccessException e) {
-            log.error("Database query error: " + e.getMessage(), e);
-            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
-        } catch (Exception e) {
-            log.error("Unhandled error: " + e.getMessage(), e);
-            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
-        }
-    }
-
-    @GetMapping("/total/save")
-    APIResponse<Long> getTotalSave(String noteId) {
-        try {
-            return new APIResponse<>(ResponseCodes.SUCCESS, null, noteService.noteTotalSave(noteId));
-        } catch (IllegalArgumentException e) {
-            log.error("Illegal argument: " + e.getMessage(), e);
-            return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
-        } catch (DataAccessException e) {
-            log.error("Database query error: " + e.getMessage(), e);
-            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
-        } catch (Exception e) {
-            log.error("Unhandled error: " + e.getMessage(), e);
-            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
-        }
-    }
 
     @GetMapping("/total/reply")
     APIResponse<Long> getTotalReplies(String noteId) {
@@ -398,5 +349,49 @@ public class NoteController {
         }
     }
 
+    /**
+     * bookmark note
+     *
+     * @param noteId note to be saved
+     * @param userId user who saves the note
+     * @return no response
+     */
+    @PostMapping("/bookmark/new")
+    APIResponse<Boolean> bookmarkNote(String noteId,
+                                      Long userId,
+                                      String folder) {
+        try {
+            List<String> folderList = List.of(folder.split(","));
+            if(folder.isEmpty()){
+                folderList = List.of();
+            }
+            noteService.bookmarkNote(noteId, userId, folderList);
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, true);
+        } catch (IllegalArgumentException e) {
+            log.error("Illegal argument: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), false);
+        } catch (DataAccessException e) {
+            log.error("Database query error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", false);
+        } catch (Exception e) {
+            log.error("Unhandled error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", false);
+        }
+    }
 
+    @GetMapping("/bookmark/get")
+    APIResponse<List<NoteBookmark>> getNoteBookmarksByUserIdAndNoteId(Long userId, String noteId) {
+        try {
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, noteService.getNoteBookmarksByUserIdAndNoteId(userId, noteId));
+        } catch (IllegalArgumentException e) {
+            log.error("Illegal argument: {}", e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
+        } catch (DataAccessException e) {
+            log.error("Database query error: {}", e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
+        } catch (Exception e) {
+            log.error("Unhandled error: {}", e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
+        }
+    }
 }

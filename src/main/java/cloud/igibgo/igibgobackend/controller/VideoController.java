@@ -1,9 +1,6 @@
 package cloud.igibgo.igibgobackend.controller;
 
-import cloud.igibgo.igibgobackend.entity.APIResponse;
-import cloud.igibgo.igibgobackend.entity.Note;
-import cloud.igibgo.igibgobackend.entity.ResponseCodes;
-import cloud.igibgo.igibgobackend.entity.Video;
+import cloud.igibgo.igibgobackend.entity.*;
 import cloud.igibgo.igibgobackend.service.VideoService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -108,10 +105,10 @@ public class VideoController {
         }
     }
 
-    @GetMapping("/like/videoId")
-    APIResponse<String> likeVideo(String videoId) {
+    @PostMapping("/like/videoId")
+    APIResponse<Void> likeVideo(String videoId,Long userId) {
         try {
-            videoService.likeVideo(videoId);
+            videoService.likeVideo(videoId,userId);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
         } catch (IllegalArgumentException e) {
             log.error("Illegal argument: " + e.getMessage(), e);
@@ -126,6 +123,58 @@ public class VideoController {
         }
     }
 
+    @PostMapping("/unlike/videoId")
+    APIResponse<Void> unlikeVideo(String videoId,Long userId){
+        try {
+            videoService.unlikeVideo(videoId,userId);
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
+        } catch (IllegalArgumentException e) {
+            log.error("Illegal argument: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
+        } catch (DataAccessException e) {
+            log.error("Database query error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
+        }
+        catch (Exception e) {
+            log.error("Internal server error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
+        }
+    }
+
+    @GetMapping("/is/liked")
+    APIResponse<Boolean> isLiked(String videoId,Long userId){
+        try {
+            Boolean isLiked = videoService.isLiked(videoId,userId);
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, isLiked);
+        } catch (IllegalArgumentException e) {
+            log.error("Illegal argument: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
+        } catch (DataAccessException e) {
+            log.error("Database query error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
+        }
+        catch (Exception e) {
+            log.error("Internal server error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
+        }
+    }
+
+    @GetMapping("/is/saved")
+    APIResponse<Boolean> isSaved(String videoId,Long userId){
+        try {
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, videoService.isSaved(videoId,userId));
+        } catch (IllegalArgumentException e) {
+            log.error("Illegal argument: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
+        } catch (DataAccessException e) {
+            log.error("Database query error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
+        }
+        catch (Exception e) {
+            log.error("Internal server error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
+        }
+    }
     @PostMapping("/reply")
     APIResponse<Void> replyVideo(String videoId, String replyContent, Long authorId) {
         try {
@@ -148,30 +197,6 @@ public class VideoController {
     APIResponse<Void> deleteReply(Long replyId, Long authorId) {
         try {
             videoService.deleteReply(replyId, authorId);
-            return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
-        } catch (IllegalArgumentException e) {
-            log.error("Illegal argument: " + e.getMessage(), e);
-            return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
-        } catch (DataAccessException e) {
-            log.error("Database query error: " + e.getMessage(), e);
-            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
-        }
-        catch (Exception e) {
-            log.error("Internal server error: " + e.getMessage(), e);
-            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
-        }
-    }
-
-    /**
-     * bookmark video
-     * @param videoId video id to be saved
-     * @param userId user who saves the video
-     * @return no response
-     */
-    @GetMapping("/bookmark")
-    APIResponse<String> bookmarkVideo(String videoId, Long userId) {
-        try {
-            videoService.bookmarkVideo(videoId, userId);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
         } catch (IllegalArgumentException e) {
             log.error("Illegal argument: " + e.getMessage(), e);
@@ -242,4 +267,47 @@ public class VideoController {
         }
     }
 
+
+    @GetMapping("/bookmark/get")
+    APIResponse<List<VideoBookmark>> getVideoBookmarksByUserIdAndVideoId(Long userId, String videoId){
+        try{
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, videoService.getVideoBookmarksByUserIdAndVideoId(userId, videoId));
+        } catch (IllegalArgumentException e) {
+            log.error("Illegal argument: {}", e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
+        } catch (DataAccessException e) {
+            log.error("Database query error: {}", e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
+        } catch (Exception e) {
+            log.error("Unhandled error: {}", e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
+        }
+    }
+    /** bookmark video
+     * @param videoId video to be saved
+     * @param userId user who saves the video
+     * @return no response
+     */
+    @PostMapping("/bookmark/new")
+    APIResponse<Boolean> bookmarkVideo(String videoId,
+                                       Long userId,
+                                       String folder) {
+        try {
+            List<String> folderList = List.of(folder.split(","));
+            if(folder.isEmpty()){
+                folderList = List.of();
+            }
+            videoService.bookmarkVideo(videoId, userId, folderList);
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, true);
+        } catch (IllegalArgumentException e) {
+            log.error("Illegal argument: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), false);
+        } catch (DataAccessException e) {
+            log.error("Database query error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", false);
+        } catch (Exception e) {
+            log.error("Unhandled error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", false);
+        }
+    }
 }

@@ -6,13 +6,14 @@ import cloud.igibgo.igibgobackend.mapper.*;
 import cloud.igibgo.igibgobackend.util.ConstantUtil;
 import cloud.igibgo.igibgobackend.util.UploadUtil;
 import jakarta.annotation.Resource;
-import jakarta.persistence.PreUpdate;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
+import javax.swing.text.html.Option;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -135,16 +136,65 @@ public class VideoService {
         }
     }
 
-    public void likeVideo(String videoId) {
+    @Resource
+    private VideoLikeMapper videoLikeMapper;
+
+    public void likeVideo(String videoId, Long userId) {
         Optional<Video> videoOptional = videoMapper.findById(videoId);
-        // if note exists
-        if (videoOptional.isPresent()) {
-            Video video = videoOptional.get();
-            video.likeCount++;
-            videoMapper.save(video);
-        } else {
+        // Check 1: if video exist
+        if (videoOptional.isEmpty())
             throw new IllegalArgumentException("Video not found with the given video id");
-        }
+        // Check 2: if user exist
+        Optional<FUser> userOptional = fUserMapper.findById(userId);
+        if (userOptional.isEmpty())
+            throw new IllegalArgumentException("User not found with the given user id");
+        // Check 3: if user has already liked the video
+        Optional<VideoLike> videoLikeOptional = videoLikeMapper.findByVideoIdAndUserId(videoId, userId);
+        if (videoLikeOptional.isPresent())
+            return;// no error since the user might want to unlike the video (click too often)
+
+        Video video = videoOptional.get();
+        FUser user = userOptional.get();
+
+        // 1. save new like record to video_like table
+        VideoLike videoLike = new VideoLike();
+        videoLike.video = video;
+        videoLike.user = user;
+        videoLikeMapper.save(videoLike);
+
+        // 2. update the like count in video table
+        updateLikeCount(videoId);
+    }
+
+    public void unlikeVideo(String videoId, Long userId) {
+        Optional<Video> videoOptional = videoMapper.findById(videoId);
+        // Check 1: if video exist
+        if (videoOptional.isEmpty())
+            throw new IllegalArgumentException("Video not found with the given video id");
+        // Check 2: if user exist
+        Optional<FUser> userOptional = fUserMapper.findById(userId);
+        if (userOptional.isEmpty())
+            throw new IllegalArgumentException("User not found with the given user id");
+        // Check 3: if user has already liked the video
+        Optional<VideoLike> videoLikeOptional = videoLikeMapper.findByVideoIdAndUserId(videoId, userId);
+        if (videoLikeOptional.isEmpty())
+            return;// no error since the user might want to like the video (click too often)
+
+        // 1. delete the like record from video_like table
+        videoLikeMapper.delete(videoLikeOptional.get());
+
+        // 2. update the like count in video table
+        updateLikeCount(videoId);
+    }
+
+
+    public boolean isLiked(String videoId, Long userId) {
+        Optional<VideoLike> videoLikeOptional = videoLikeMapper.findByVideoIdAndUserId(videoId, userId);
+        return videoLikeOptional.isPresent();
+    }
+    public boolean isSaved(String videoId, Long userId) {
+        List<VideoBookmark> videoBookmarkOptional = videoBookmarkMapper.findAllByVideoVideoIdAndBookmarkUserUserId(videoId, userId);
+        return !videoBookmarkOptional.isEmpty();// not empty
     }
 
     @Resource
@@ -153,6 +203,15 @@ public class VideoService {
     private void updateViewCount(String videoId) {
         Long viewCount = videoViewMapepr.countByVideoId(videoId);
         videoMapper.updateViewCountByVideoId(videoId, viewCount);
+    }
+
+    private void updateLikeCount(String videoId) {
+        Long likeCount = videoLikeMapper.countByVideoVideoId(videoId);
+        videoMapper.updateLikeCountByVideoId(videoId, likeCount);
+    }
+    private void updateSaveCount(String videoId){
+        Long saveCount=videoBookmarkMapper.countByVideoVideoId(videoId);
+        videoMapper.updateSaveCountByVideoId(videoId,saveCount);
     }
 
     public Video getVideoByVideoId(String videoId, Long userId) {
@@ -186,24 +245,6 @@ public class VideoService {
         return video;
     }
 
-    public void bookmarkVideo(String videoId, Long userId) {
-        // Check 1: if the user exists
-        if (fUserMapper.existsById(userId)) {
-            // Check 2: if the video exists
-            Optional<Video> video = videoMapper.findById(videoId);
-            if (video.isPresent()) {
-                // 1. get the video
-                Video videoInstance = video.get();
-                videoInstance.saveCount++;
-                // 2. save the video to db
-                videoMapper.save(videoInstance);
-            } else {
-                throw new IllegalArgumentException("Video not found with the given video id");
-            }
-        } else {
-            throw new IllegalArgumentException("User not found with the given user id");
-        }
-    }
 
     public void deleteVideo(Long authorId, String videoId) {
         // Check 1: if author exists
@@ -274,5 +315,70 @@ public class VideoService {
         } else {
             throw new IllegalArgumentException("Reply does not exist");
         }
+    }
+
+
+    @Resource
+    private VideoBookmarkMapper videoBookmarkMapper;
+
+    public List<VideoBookmark> getVideoBookmarksByUserIdAndVideoId(Long userId,String videoId){
+        return videoBookmarkMapper.findAllByVideoVideoIdAndBookmarkUserUserId(videoId,userId);
+    }
+
+    @Resource
+    private BookmarkMapper bookmarkMapper;
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    public void bookmarkVideo(String videoId,Long userId,List<String> bookmarkNames){
+        // Check 1: if the user exists
+        Optional<FUser> userOptional = fUserMapper.findById(userId);
+        if (userOptional.isEmpty()) {
+            throw new IllegalArgumentException("User not found");
+        }
+        // Check 2: if the video exists
+        Optional<Video> videoOptional = videoMapper.findById(videoId);
+        if (videoOptional.isEmpty()) {
+            throw new IllegalArgumentException("Video not found");
+        }
+        Video video = videoOptional.get();
+        FUser user = userOptional.get();
+        Set<String> bookmarkNamesSet = new HashSet<>(bookmarkNames);// remove duplicate bookmark names
+        List<Bookmark> bookmarks = new ArrayList<>();// parallel array with bookmarkNamesSet
+        // 1. delete all note bookmarks for the note and user
+        videoBookmarkMapper.deleteByVideoVideoIdAndBookmarkUserUserId(videoId,userId);
+        // 2. delete all bookmarks with no note bookmarks
+        entityManager.clear();// IMPORTANT: clear the entity manager to avoid stale data, TOOK ME SO LONG TO FIX THIS PROBLEM!
+        List<Bookmark> allBookmarks = bookmarkMapper.findAllByUserUserId(userId);
+        for (Bookmark bookmark : allBookmarks) {
+            if (bookmark.noteBookmarks.isEmpty()) {
+                bookmarkMapper.deleteById(bookmark.bookmarkId);
+            }
+        }
+        // Add bookmarks
+        for (String bookmarkName : bookmarkNamesSet) {
+            // 3. check if the bookmarkName exists in the bookmark table
+            Optional<Bookmark> bookmarkOptional = bookmarkMapper.findByBookmarkName(bookmarkName);
+            if (bookmarkOptional.isEmpty()) {// the bookmark name is not in the table, create a new bookmark
+                Bookmark bookmark = new Bookmark();
+                bookmark.user = user;
+                bookmark.bookmarkName = bookmarkName;
+                bookmarkMapper.save(bookmark);// save to db
+            }
+            // 4. add the bookmark to the list (for later use)
+            // there's no .isPresent check since the bookmark must exist after the above check
+            Bookmark bookmark = bookmarkMapper.findByBookmarkName(bookmarkName).get();
+            bookmarks.add(bookmark);
+        }
+        // 4. Add video bookmarks
+        for (Bookmark bookmark : bookmarks) {
+            VideoBookmark videoBookmark=new VideoBookmark();
+            videoBookmark.video=video;
+            videoBookmark.bookmark=bookmark;
+            videoBookmarkMapper.save(videoBookmark);// save to db
+        }
+        // 5. Update save count
+        updateSaveCount(videoId);
     }
 }

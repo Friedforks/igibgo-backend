@@ -8,6 +8,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface BookmarkMapper extends JpaRepository<Bookmark, Long>{
-    public Optional<Bookmark> findByBookmarkName(String bookmarkName);
-    public List<Bookmark> findAllByUserUserId(Long userId);
+    Optional<Bookmark> findByBookmarkName(String bookmarkName);
+    List<Bookmark> findAllByUserUserId(Long userId);
 }

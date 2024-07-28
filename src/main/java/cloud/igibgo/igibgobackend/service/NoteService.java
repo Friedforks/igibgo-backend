@@ -6,6 +6,8 @@ import cloud.igibgo.igibgobackend.mapper.*;
 import cloud.igibgo.igibgobackend.util.ConstantUtil;
 import cloud.igibgo.igibgobackend.util.UploadUtil;
 import jakarta.annotation.Resource;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.swing.text.html.Option;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -135,11 +138,6 @@ public class NoteService {
         noteMapper.updateSaveCountByNoteId(noteId, saveCount);
     }
 
-    void updateReplyCount(String noteId) {
-        Long replyCount = noteReplyMapper.countByNoteNoteId(noteId);
-        noteMapper.updateReplyCountByNoteId(noteId, replyCount);
-    }
-
     public void likeNote(String noteId, Long userId) {
         Optional<Note> noteOptional = noteMapper.findById(noteId);
         // Check1: if note exists
@@ -170,6 +168,7 @@ public class NoteService {
     public void unlikeNote(String noteId, Long userId) {
         Optional<NoteLike> noteLikeOptional = noteLikeMapper.findByNoteIdAndUserId(noteId, userId);
         Optional<Note> noteOptional = noteMapper.findById(noteId);
+        Optional<FUser> userOptional = fUserMapper.findById(userId);
         // Check 1: if the note exists
         if (noteOptional.isEmpty()) {
             throw new IllegalArgumentException("Note not found with the given note id");
@@ -177,6 +176,10 @@ public class NoteService {
         // Check 2: if the user has liked the note
         if (noteLikeOptional.isEmpty()) {
             throw new IllegalArgumentException("You have not liked the note");
+        }
+        // Check 3: if the user exists
+        if(userOptional.isEmpty()) {
+            throw new IllegalArgumentException("User not found with the given user id");
         }
         noteLikeMapper.deleteById(noteLikeOptional.get().noteLikeId);
         updateLikeCount(noteId);
@@ -295,18 +298,6 @@ public class NoteService {
         noteReplyMapper.deleteById(replyId);
     }
 
-    public Long noteTotalLike(String noteId) {
-        return noteLikeMapper.countByNoteNoteId(noteId);
-    }
-
-    public Long noteTotalView(String noteId) {
-        return noteViewMapper.countByNoteNoteId(noteId);
-    }
-
-    public Long noteTotalSave(String noteId) {
-        return noteBookmarkMapper.countByNoteNoteId(noteId);
-    }
-
     public Long noteTotalReply(String noteId) {
         return noteReplyMapper.countByNoteNoteId(noteId);
     }
@@ -323,5 +314,65 @@ public class NoteService {
         return !noteReplyMapper.findNoteRepliesByNoteNoteIdAndAuthorUserId(noteId, userId).isEmpty();
     }
 
+    @Resource
+    private BookmarkMapper bookmarkMapper;
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
+
+    public void bookmarkNote(String noteId, Long userId, List<String> bookmarkNames) {
+        // Check 1: if the user exists
+        Optional<FUser> userOptional = fUserMapper.findById(userId);
+        if (userOptional.isEmpty()) {
+            throw new IllegalArgumentException("User not found");
+        }
+        // Check 2: if the note exists
+        Optional<Note> noteOptional = noteMapper.findById(noteId);
+        if (noteOptional.isEmpty()) {
+            throw new IllegalArgumentException("Note not found");
+        }
+        Note note = noteOptional.get();
+        FUser user = userOptional.get();
+        Set<String> bookmarkNamesSet = new HashSet<>(bookmarkNames);// remove duplicate bookmark names
+        List<Bookmark> bookmarks = new ArrayList<>();// parallel array with bookmarkNamesSet
+        // 1. delete all note bookmarks for the note and user
+        noteBookmarkMapper.deleteAllByBookmarkUserUserIdAndNoteNoteId(userId, noteId);
+        // 2. delete all bookmarks with no note bookmarks
+        entityManager.clear();// IMPORTANT: clear the entity manager to avoid stale data, TOOK ME SO LONG TO FIX THIS PROBLEM!
+        List<Bookmark> allBookmarks = bookmarkMapper.findAllByUserUserId(userId);
+        for (Bookmark bookmark : allBookmarks) {
+            if (bookmark.noteBookmarks.isEmpty()) {
+                bookmarkMapper.deleteById(bookmark.bookmarkId);
+            }
+        }
+        // Add bookmarks
+        for (String bookmarkName : bookmarkNamesSet) {
+            // 3. check if the bookmarkName exists in the bookmark table
+            Optional<Bookmark> bookmarkOptional = bookmarkMapper.findByBookmarkName(bookmarkName);
+            if (bookmarkOptional.isEmpty()) {// the bookmark name is not in the table, create a new bookmark
+                Bookmark bookmark = new Bookmark();
+                bookmark.user = user;
+                bookmark.bookmarkName = bookmarkName;
+                bookmarkMapper.save(bookmark);// save to db
+            }
+            // 4. add the bookmark to the list (for later use)
+            // there's no .isPresent check since the bookmark must exist after the above check
+            Bookmark bookmark = bookmarkMapper.findByBookmarkName(bookmarkName).get();
+            bookmarks.add(bookmark);
+        }
+        // 4. Add note bookmarks
+        for (Bookmark bookmark : bookmarks) {
+            NoteBookmark noteBookmark = new NoteBookmark();
+            noteBookmark.note = note;
+            noteBookmark.bookmark = bookmark;
+            noteBookmarkMapper.save(noteBookmark);// save to db
+        }
+        // 5. update the save count for the note
+        updateSaveCount(noteId);
+    }
+
+    public List<NoteBookmark> getNoteBookmarksByUserIdAndNoteId(Long userId, String noteId) {
+        return noteBookmarkMapper.findAllByNoteNoteIdAndBookmarkUserUserId(noteId, userId);
+    }
 }

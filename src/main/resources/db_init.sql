@@ -104,17 +104,24 @@ create table video_reply
     author         int       not null references f_user (user_id) on delete cascade
 );
 
+
 create table video_bookmark
 (
-    bookmark_video_id bigserial not null,
-    video_id          text      not null references video (video_id) on delete cascade,
-    user_id           bigint references f_user (user_id) on delete cascade,
-    folder            text
+    video_bookmark_id bigserial not null,
+    bookmark_id      bigint references bookmark (bookmark_id) on delete cascade,
+    video_id          text      not null references video (video_id) on delete cascade
 );
 
 create table video_view
 (
     video_view_id bigserial primary key not null,
+    video_id      text                  not null references video (video_id) on delete cascade,
+    user_id       bigint                not null references f_user (user_id) on delete cascade
+);
+
+create table video_like
+(
+    video_like_id bigserial primary key not null,
     video_id      text                  not null references video (video_id) on delete cascade,
     user_id       bigint                not null references f_user (user_id) on delete cascade
 );

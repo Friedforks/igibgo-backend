@@ -4,19 +4,18 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "video_bookmark")
-public class VideoBookmark {
+@Table(name = "video_like")
+public class VideoLike {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    public Long videoBookmarkId;
-
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "bookmark_id")
-    @JsonBackReference
-    public Bookmark bookmark;
+    public Long videoLikeId;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "video_id")
+    @JsonBackReference
     public Video video;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_id")
+    public FUser user;
 }

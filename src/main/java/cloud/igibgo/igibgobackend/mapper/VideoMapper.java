@@ -18,5 +18,15 @@ public interface VideoMapper extends JpaRepository<Video, String> {
     @Transactional
     @Modifying
     @Query("update Video v set v.viewCount=:viewCount where v.videoId=:videoId")
-    public void updateViewCountByVideoId(String videoId, Long viewCount);
+    void updateViewCountByVideoId(String videoId, Long viewCount);
+
+    @Transactional
+    @Modifying
+    @Query("update Video v set v.likeCount=:likeCount where v.videoId=:videoId")
+    void updateLikeCountByVideoId(String videoId, Long likeCount);
+
+    @Transactional
+    @Modifying
+    @Query("update Video v set v.saveCount=:saveCount where v.videoId=:videoId")
+    void updateSaveCountByVideoId(String videoId, Long saveCount);
 }
