@@ -10,6 +10,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -44,8 +45,13 @@ public class VideoService {
         return videos.stream().toList();
     }
 
+    public Page<Video> getVideosByVideoTitle(String videoTitle, Pageable pageable) {
+        return videoMapper.searchByTitle(videoTitle, pageable);
+    }
 
-    @Resource
+
+
+        @Resource
     private FUserMapper fUserMapper;
 
     @Resource

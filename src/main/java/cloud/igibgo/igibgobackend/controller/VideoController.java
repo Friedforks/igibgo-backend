@@ -105,6 +105,26 @@ public class VideoController {
         }
     }
 
+    @GetMapping("/get/title")
+    APIResponse<Page<Video>> getVideosByVideoTitle(String videoTitle,int page, int size){
+        try{
+            // Check 1: videoTitle cannot be null
+            if (videoTitle == null) {
+                return new APIResponse<>(ResponseCodes.BAD_REQUEST, "videoTitle cannot be null", null);
+            }
+            // 1. create a page request
+            PageRequest pageRequest = PageRequest.of(page, size);
+            Page<Video> videos=videoService.getVideosByVideoTitle(videoTitle,pageRequest);
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, videos);
+        }catch (DataAccessException e) {
+            log.error("Database query error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
+        }catch (Exception e) {
+            log.error("Internal server error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
+        }
+    }
+
     @PostMapping("/like/videoId")
     APIResponse<Void> likeVideo(String videoId,Long userId) {
         try {

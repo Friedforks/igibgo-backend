@@ -152,3 +152,15 @@ create table post_reply
     reply_content text      not null,
     author        int       not null references f_user (user_id) on delete cascade
 );
+
+/* full text search config */
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS zhparser;
+CREATE TEXT SEARCH CONFIGURATION chinese (PARSER = zhparser);
+ALTER TEXT SEARCH CONFIGURATION chinese
+    ADD MAPPING FOR n,v,a,i,e,l,t WITH simple;
+
+
+ALTER TABLE video ADD COLUMN title_tsv tsvector;
+UPDATE video SET title_tsv = to_tsvector('chinese', title);
+CREATE INDEX video_title_tsv_idx ON video USING GIN(title_tsv);
