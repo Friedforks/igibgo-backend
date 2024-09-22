@@ -1,6 +1,9 @@
 spring:
   application:
     name: igibgo
+  output:
+    ansi:
+      enabled: always
   data:
     redis:
       host: igibgo.cloud
@@ -11,12 +14,12 @@ spring:
     password: Hellochixiyu07!
 #    url: jdbc:postgresql://igibgo.cloud:5000/igibgo?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
     url: jdbc:postgresql://igibgo.cloud:5000/igibgo_dev?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    driver-class-name: org.postgresql.Driver
   mail:
     host: smtp.qq.com
     port: 587
-
-    username: 3344544482@qq.com
-    password: sttzewhrvvpwdaja
+    username: 2980364872@qq.com
+    password: tfuimtvvkamddeac
     properties.mail.smtp:
       auth: true
       starttls:
@@ -68,8 +71,8 @@ cos:
 #    host: smtp.qq.com
 #    port: 587
 #
-#    username: 3344544482@qq.com
-#    password: sttzewhrvvpwdaja
+#    username: 2980364872@qq.com
+#    password: tfuimtvvkamddeac
 #    properties.mail.smtp:
 #      auth: true
 #      starttls:

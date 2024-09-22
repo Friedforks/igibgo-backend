@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 @Slf4j
 @RestController
@@ -39,17 +40,17 @@ public class FUserController {
      */
     @PostMapping("/register2")
     public APIResponse<FUser> userRegister2(String username,
-                                            String authCode,
-                                            String email,
-                                            String password,
-                                            MultipartFile avatar) {
+            String authCode,
+            String email,
+            String password,
+            MultipartFile avatar) {
         return fUserService.userRegister2(username, authCode, email, password, avatar);
     }
 
     /**
      * User login
      *
-     * @param email email
+     * @param email    email
      * @param password password
      * @return token
      */
@@ -60,63 +61,76 @@ public class FUserController {
 
     @PostMapping("/logout")
     public APIResponse<Void> logout(String token) {
-        try{
+        try {
             fUserService.logout(token);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
-        }catch (IllegalArgumentException e){
+        } catch (IllegalArgumentException e) {
             return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
-        }catch (Exception e){
+        } catch (Exception e) {
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, e.getMessage(), null);
         }
     }
 
     @PostMapping("/checkLogin")
     public APIResponse<FUser> checkLogin(String token) {
-        try{
+        try {
             FUser fUser = fUserService.checkLogin(token);
-            return new APIResponse<>(ResponseCodes.SUCCESS,null,fUser);
-        }catch (IllegalArgumentException e) {
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, fUser);
+        } catch (IllegalArgumentException e) {
             return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, e.getMessage(), null);
         }
     }
 
     @GetMapping("/userId")
     public APIResponse<FUser> findFUser(Long userId, String token){
-        return fUserService.findFUser(userId,token);
+        try{
+            return new APIResponse<FUser>(ResponseCodes.SUCCESS, null, fUserService.findFUser(userId,token));
+        }catch (IllegalArgumentException e){
+            return new APIResponse<FUser>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
+        }catch (Exception e){
+            return new APIResponse<FUser>(ResponseCodes.INTERNAL_SERVER_ERROR, e.getMessage(), null);
+        }
     }
+
     @PostMapping("/update")
-    public APIResponse<FUser> updateFUser(FUser fUser){
+    public APIResponse<FUser> updateFUser(FUser fUser) {
         return fUserService.updateFUser(fUser);
     }
 
     // statistics
     @GetMapping("/total/like")
-    public APIResponse<Long> totalLikes(Long userId){
-        try{
+    public APIResponse<Long> totalLikes(Long userId) {
+        try {
             return fUserService.totalLikes(userId);
-        }catch (Exception e){
+        } catch (Exception e) {
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, e.getMessage(), null);
         }
     }
 
     @GetMapping("/total/save")
-    public APIResponse<Long> totalSaves(Long userId){
-        return fUserService.totalSaves(userId);
+    public APIResponse<Long> totalSaves(Long userId) {
+        try {
+            return fUserService.totalSaves(userId);
+        } catch (Exception e) {
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, e.getMessage(), null);
+        }
     }
 
     @GetMapping("/total/view")
-    public APIResponse<Long> totalViews(Long userId){
-        return fUserService.totalViews(userId);
+    public APIResponse<Long> totalViews(Long userId) {
+        try {
+            return fUserService.totalViews(userId);
+        } catch (Exception e) {
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, e.getMessage(), null);
+        }
     }
 
     @PostMapping("/update/avatar")
-    public APIResponse<FUser> updateAvatar(String token, MultipartFile avatar){
+    public APIResponse<FUser> updateAvatar(String token, MultipartFile avatar) {
         return fUserService.updateAvatar(token, avatar);
     }
-
 
     @GetMapping("/bookmark/get/userId")
     APIResponse<List<Bookmark>> getBookmarksByUserId(Long userId) {

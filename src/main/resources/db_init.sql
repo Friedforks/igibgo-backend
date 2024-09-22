@@ -1,3 +1,10 @@
+/* full text search config */
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS zhparser;
+CREATE TEXT SEARCH CONFIGURATION chinese (PARSER = zhparser);
+ALTER TEXT SEARCH CONFIGURATION chinese
+    ADD MAPPING FOR n,v,a,i,e,l,t WITH simple;
+
 create table f_user
 (
     user_id         bigserial primary key not null,
@@ -28,8 +35,14 @@ create table note
     collection_id int       not null references collection (collection_id) on delete cascade,
     note_url      text      not null,
     upload_date   timestamp not null,
-    title         text      not null
+    title         text      not null,
+    title_tsv     tsvector  generated always as ( to_tsvector('chinese',title) ) stored
 );
+
+
+-- index tsvector
+create index note_title_tsv_idx on note using gin(title_tsv);
+
 
 create table note_tag
 (
@@ -47,10 +60,11 @@ create table note_reply
     author        int       not null references f_user (user_id) on delete cascade
 );
 
-create table bookmark(
-    bookmark_id bigserial primary key not null,
-    user_id bigint references f_user (user_id) on delete cascade,
-    bookmark_name text not null
+create table bookmark
+(
+    bookmark_id   bigserial primary key not null,
+    user_id       bigint references f_user (user_id) on delete cascade,
+    bookmark_name text                  not null
 );
 create table note_bookmark
 (
@@ -85,8 +99,13 @@ create table video
     video_url       text      not null,
     video_cover_url text      not null,
     upload_date     timestamp not null,
-    title           text      not null
+    title           text      not null,
+    title_tsv       tsvector generated always as ( to_tsvector('chinese', title)) stored
+
 );
+
+-- add index for title_tsv
+create index video_title_tsv_idx on video using gin(title_tsv);
 
 create table video_tag
 (
@@ -108,7 +127,7 @@ create table video_reply
 create table video_bookmark
 (
     video_bookmark_id bigserial not null,
-    bookmark_id      bigint references bookmark (bookmark_id) on delete cascade,
+    bookmark_id       bigint references bookmark (bookmark_id) on delete cascade,
     video_id          text      not null references video (video_id) on delete cascade
 );
 
@@ -152,15 +171,3 @@ create table post_reply
     reply_content text      not null,
     author        int       not null references f_user (user_id) on delete cascade
 );
-
-/* full text search config */
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
-CREATE EXTENSION IF NOT EXISTS zhparser;
-CREATE TEXT SEARCH CONFIGURATION chinese (PARSER = zhparser);
-ALTER TEXT SEARCH CONFIGURATION chinese
-    ADD MAPPING FOR n,v,a,i,e,l,t WITH simple;
-
-
-ALTER TABLE video ADD COLUMN title_tsv tsvector;
-UPDATE video SET title_tsv = to_tsvector('chinese', title);
-CREATE INDEX video_title_tsv_idx ON video USING GIN(title_tsv);

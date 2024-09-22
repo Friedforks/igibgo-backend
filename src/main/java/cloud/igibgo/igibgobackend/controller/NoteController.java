@@ -31,11 +31,10 @@ public class NoteController {
 
     @GetMapping("/get/all")
     APIResponse<List<Note>> getAllNotes(Long userId) {
-        try{
+        try {
             List<Note> notes = noteMapper.findAllByAuthorUserId(userId);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, notes);
-        }
-        catch (DataAccessException e) {
+        } catch (DataAccessException e) {
             log.error("Database query error: {}", e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
         } catch (Exception e) {
@@ -81,7 +80,6 @@ public class NoteController {
         }
     }
 
-
     /**
      * get notes by tags
      *
@@ -118,13 +116,12 @@ public class NoteController {
     }
 
     @GetMapping("/get/title")
-    APIResponse<Page<Note>> getNoteByTitle(String title, int page, int size, String orderBy, boolean ascending) {
+    APIResponse<Page<Note>> getNoteByTitle(String title, int page, int size) {
         try {
             if (title == null) {
                 return new APIResponse<>(ResponseCodes.BAD_REQUEST, "title cannot be null", null);
             }
-            Sort.Direction direction = ascending ? Sort.Direction.ASC : Sort.Direction.DESC;
-            PageRequest pageRequest = PageRequest.of(page, size, Sort.by(direction, orderBy));
+            PageRequest pageRequest = PageRequest.of(page, size);
             Page<Note> notes = noteService.getNotesByTitle(title, pageRequest);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, notes);
         } catch (DataAccessException e) {
@@ -135,7 +132,6 @@ public class NoteController {
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
-
 
     @GetMapping("/get/noteId")
     APIResponse<Note> getNoteWithRepliesTags(String noteId, Long userId) {
@@ -154,7 +150,6 @@ public class NoteController {
         }
     }
 
-
     @GetMapping("/get/reply")
     APIResponse<List<NoteReply>> getAllReplies(String noteId) {
         try {
@@ -167,7 +162,6 @@ public class NoteController {
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
-
 
     @GetMapping("/like")
     APIResponse<Void> likeNote(String noteId, Long userId) {
@@ -221,9 +215,9 @@ public class NoteController {
     }
 
     @GetMapping("/delete/reply")
-    APIResponse<Void> deleteReply(Long replyId,String token) {
+    APIResponse<Void> deleteReply(Long replyId, String token) {
         try {
-            noteService.deleteReply(replyId,token);
+            noteService.deleteReply(replyId, token);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
         } catch (IllegalArgumentException e) {
             log.error("Illegal argument: " + e.getMessage(), e);
@@ -236,7 +230,6 @@ public class NoteController {
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
-
 
     // note manager side
 
@@ -283,7 +276,6 @@ public class NoteController {
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
-
 
     @GetMapping("/total/reply")
     APIResponse<Long> getTotalReplies(String noteId) {
@@ -358,11 +350,11 @@ public class NoteController {
      */
     @PostMapping("/bookmark/new")
     APIResponse<Boolean> bookmarkNote(String noteId,
-                                      Long userId,
-                                      String folder) {
+            Long userId,
+            String folder) {
         try {
             List<String> folderList = List.of(folder.split(","));
-            if(folder.isEmpty()){
+            if (folder.isEmpty()) {
                 folderList = List.of();
             }
             noteService.bookmarkNote(noteId, userId, folderList);
@@ -382,7 +374,8 @@ public class NoteController {
     @GetMapping("/bookmark/get")
     APIResponse<List<NoteBookmark>> getNoteBookmarksByUserIdAndNoteId(Long userId, String noteId) {
         try {
-            return new APIResponse<>(ResponseCodes.SUCCESS, null, noteService.getNoteBookmarksByUserIdAndNoteId(userId, noteId));
+            return new APIResponse<>(ResponseCodes.SUCCESS, null,
+                    noteService.getNoteBookmarksByUserIdAndNoteId(userId, noteId));
         } catch (IllegalArgumentException e) {
             log.error("Illegal argument: {}", e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);

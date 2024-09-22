@@ -12,4 +12,7 @@ public interface VideoViewMapepr extends JpaRepository<VideoView,Long> {
 
     @Query("select count(vv) from VideoView vv where vv.video.videoId=:videoId")
     Long countByVideoId(String videoId);
+
+    @Query("select count(vv) from VideoView vv where vv.video.author.userId= :userId")
+    Long countByAuthorId(Long userId);
 }

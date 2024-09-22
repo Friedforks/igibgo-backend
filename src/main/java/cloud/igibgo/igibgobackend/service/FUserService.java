@@ -7,6 +7,7 @@ import com.squareup.okhttp.Call;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.bcel.Const;
+import org.joda.time.IllegalFieldValueException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,26 +35,26 @@ public class FUserService {
     MailUtil mailUtil;
 
     public APIResponse<String> userRegister1(String email, String password) {
-        //Check 1: not Huili email
+        // Check 1: not Huili email
         if (!email.contains("@huilieducation.cn")) {
             log.info("User email: " + email + " try to register but failed since it is not Huili email");
             return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Email must be @huilieducation.cn", null);
         }
 
-        //Check 2: check if user is already registered
+        // Check 2: check if user is already registered
         if (fUserMapper.findByEmail(email).isPresent()) {
             log.info("User email: " + email + " try to register but failed since it is already registered");
             return new APIResponse<>(ResponseCodes.CONFLICT, "User already registered", null);
         }
 
         try {
-            //1. Send email auth code
+            // 1. Send email auth code
             String authCode = PasswordUtil.generateAuthCode();
             mailUtil.sendMail(email, "IGIBGO authentication code",
                     "Your authentication code is: " + authCode +
                             ". Please copy and paste the authentication code to the registration page in 5 minutes before it expire.");
 
-            //2. Save to redis
+            // 2. Save to redis
             redisTemplate.opsForValue().set("register" + email, password + authCode, 5, TimeUnit.MINUTES);
             return new APIResponse<>(ResponseCodes.SUCCESS, "Email sent successfully", null);
         } catch (Exception e) {
@@ -76,31 +77,35 @@ public class FUserService {
      * @return token
      */
     public APIResponse<FUser> userRegister2(String username,
-                                            String authCode,
-                                            String email,
-                                            String password,
-                                            MultipartFile avatar) {
+            String authCode,
+            String email,
+            String password,
+            MultipartFile avatar) {
         // Check 1: check the auth code
-        String redisValue = redisTemplate.opsForValue().get("register" + email);// redis value contains password + auth code
+        String redisValue = redisTemplate.opsForValue().get("register" + email);// redis value contains password + auth
+                                                                                // code
         if (redisValue == null) {
-            return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Wrong email entered or the auth code has expired.", null);
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Wrong email entered or the auth code has expired.",
+                    null);
         }
         if (!redisValue.equals(password + authCode)) {
-            return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Auth code incorrect or wrong information was entered.", null);
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Auth code incorrect or wrong information was entered.",
+                    null);
         }
-        //1. Delete the auth code
+        // 1. Delete the auth code
         redisTemplate.delete("register" + email);
-        //2. Upload avatar
-        String avatarFileName = UUID.randomUUID() + Objects.requireNonNull(avatar.getOriginalFilename()).substring(avatar.getOriginalFilename().lastIndexOf("."));
+        // 2. Upload avatar
+        String avatarFileName = UUID.randomUUID() + Objects.requireNonNull(avatar.getOriginalFilename())
+                .substring(avatar.getOriginalFilename().lastIndexOf("."));
         try {
             Path tmpDir = Paths.get(ConstantUtil.tmpPath);
-            Path tempAvatarFile = Files.createTempFile(tmpDir,null, avatarFileName);
+            Path tempAvatarFile = Files.createTempFile(tmpDir, null, avatarFileName);
             avatar.transferTo(tempAvatarFile);
             // time-consuming
-            String avatarUrl = uploadUtil.upload(tempAvatarFile.toFile()    , avatarFileName, "avatar/");
+            String avatarUrl = uploadUtil.upload(tempAvatarFile.toFile(), avatarFileName, "avatar/");
             // 3. encrypt password
             password = PasswordUtil.hashPassword(password);
-            //4. Save to db
+            // 4. Save to db
             boolean isTeacher;
             isTeacher = email.chars().anyMatch(Character::isDigit);
             FUser fUser = new FUser(
@@ -108,10 +113,9 @@ public class FUserService {
                     avatarUrl,
                     isTeacher,
                     email,
-                    password
-            );
+                    password);
             fUserMapper.save(fUser);
-            //5. generate token
+            // 5. generate token
             String token = UUID.randomUUID().toString();
             fUser.token = token;
             redisTemplate.opsForValue().set(email, token);
@@ -127,25 +131,30 @@ public class FUserService {
         }
     }
 
-    public APIResponse<FUser> findFUser(Long userId, String token) {
+    public FUser findFUser(Long userId, String token)throws IllegalArgumentException {
         Optional<FUser> fUserOptional = fUserMapper.findById(userId);
         if (fUserOptional.isEmpty()) {
-            return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null);
+            throw new IllegalArgumentException("User not found");
         }
         FUser fUser = fUserOptional.get();
         // check if token is valid and user is the same
-        String email = redisTemplate.opsForValue().get(token);
-        if (email == null) {
-            return new APIResponse<>(ResponseCodes.BAD_REQUEST, "User not logged in", null);
-        }
-        if (!email.equals(fUser.email)) {
+        if (token == null) {
             // hide sensitive info
             fUser.password = null;
             fUser.email = null;
             fUser.isTeacher = false;
             fUser.token = null;
+        } else {
+            // if token user isn't the same as the user requested
+            String email = redisTemplate.opsForValue().get(token);
+            if (email == null) {
+                throw new IllegalArgumentException("User not logged in");
+            }
+            if (!email.equals(fUser.email)) {
+                throw new IllegalArgumentException("User not authorized");
+            }
         }
-        return new APIResponse<>(ResponseCodes.SUCCESS, null, fUser);
+        return fUser;
     }
 
     public APIResponse<FUser> login(String email, String password) {
@@ -220,49 +229,65 @@ public class FUserService {
 
     @Resource
     private VideoLikeMapper videoLikeMapper;
+
     public APIResponse<Long> totalLikes(Long authorId) throws ExecutionException, InterruptedException {
         // check 1: if user exists
         if (fUserMapper.findById(authorId).isEmpty()) {
             return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null);
         }
-        ExecutorService executor=Executors.newVirtualThreadPerTaskExecutor();
+        ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
         // 1.1 total note like
-        Callable<Long> noteLikeCount=()->noteLikeMapper.countByAuthorId(authorId);
+        Callable<Long> noteLikeCount = () -> noteLikeMapper.countByAuthorId(authorId);
         // 1.2 total video like
-        Callable<Long> videoLikeCount=()->videoLikeMapper.countByAuthorId(authorId);
+        Callable<Long> videoLikeCount = () -> videoLikeMapper.countByAuthorId(authorId);
         // 2. add total like
-        Long totalLike=executor.submit(noteLikeCount).get()+executor.submit(videoLikeCount).get();
+        Long totalLike = executor.submit(noteLikeCount).get() + executor.submit(videoLikeCount).get();
         return new APIResponse<>(ResponseCodes.SUCCESS, null, totalLike);
     }
 
     @Resource
     private NoteBookmarkMapper noteBookmarkMapper;
 
+    @Resource
+    private VideoBookmarkMapper videoBookmarkMapper;
+
     // TODO: add saves from video
-    public APIResponse<Long> totalSaves(Long userId) {
+    public APIResponse<Long> totalSaves(Long userId) throws ExecutionException, InterruptedException {
         // check 1: if user exists
         if (fUserMapper.findById(userId).isEmpty()) {
             return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null);
         }
-        // total note save
-        Long saveCount = noteBookmarkMapper.countByBookmarkUserUserId(userId);
+        ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+        // 1.1 total note save
+        Callable<Long> noteSaveCount = () -> noteBookmarkMapper.countByAuthorId(userId);
+        // 1.2 total video save
+        Callable<Long> videoSaveCount = () -> videoBookmarkMapper.countByAuthorId(userId);
+        // 2. add total save
+        Long saveCount = executor.submit(noteSaveCount).get() + executor.submit(videoSaveCount).get();
         return new APIResponse<>(ResponseCodes.SUCCESS, null, saveCount);
     }
 
     @Resource
     private NoteViewMapper noteViewMapper;
 
-    public APIResponse<Long> totalViews(Long userId) {
+    @Resource
+    private VideoViewMapepr videoViewMapepr;
+
+    public APIResponse<Long> totalViews(Long userId) throws ExecutionException, InterruptedException {
         // check 1: if user exists
         if (fUserMapper.findById(userId).isEmpty()) {
             return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null);
         }
-        // total note view
-        Long viewCount = noteViewMapper.countByAuthorId(userId);
-        return new APIResponse<>(ResponseCodes.SUCCESS, null, viewCount);
+        ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+        // 1.1 total note view
+        Callable<Long> noteViewCount = () -> noteViewMapper.countByAuthorId(userId);
+        // 1.2 total video view
+        Callable<Long> videoViewCount = () -> videoViewMapepr.countByAuthorId(userId);
+        Long totalView = executor.submit(noteViewCount).get() + executor.submit(videoViewCount).get();
+        return new APIResponse<>(ResponseCodes.SUCCESS, null, totalView);
     }
 
-    public APIResponse<FUser> updateAvatar(String token, MultipartFile avatar){
+    public APIResponse<FUser> updateAvatar(String token, MultipartFile avatar) {
         // check 1: if token exists
         String email = redisTemplate.opsForValue().get(token);
         if (email == null) {
@@ -275,14 +300,16 @@ public class FUserService {
         }
         FUser fUser = fUserOptional.get();
         // 1. upload the new avatar
-        String avatarFileName= UUID.randomUUID() + Objects.requireNonNull(avatar.getOriginalFilename()).substring(avatar.getOriginalFilename().lastIndexOf("."));
-        try{
+        String avatarFileName = UUID.randomUUID() + Objects.requireNonNull(avatar.getOriginalFilename())
+                .substring(avatar.getOriginalFilename().lastIndexOf("."));
+        try {
             Path tmpDir = Paths.get(ConstantUtil.tmpPath);
-            Path tempAvatarFile = Files.createTempFile(tmpDir,null, avatarFileName);
+            Path tempAvatarFile = Files.createTempFile(tmpDir, null, avatarFileName);
             avatar.transferTo(tempAvatarFile);
             // parallel processing (2,3) and (4) using virtual threads
             // time-consuming
-            // for example avatarUrl="https://igibgo-1306825637.cos.ap-shanghai.myqcloud.com/avatar/1b9d6bc7-4f3f-4f3f-8f3f-4f3f8f3f4f3f.jpg"
+            // for example
+            // avatarUrl="https://igibgo-1306825637.cos.ap-shanghai.myqcloud.com/avatar/1b9d6bc7-4f3f-4f3f-8f3f-4f3f8f3f4f3f.jpg"
             String avatarUrl = uploadUtil.upload(tempAvatarFile.toFile(), avatarFileName, "avatar/");
             // 2. update the avatar
             fUser.avatarUrl = avatarUrl;
@@ -302,5 +329,9 @@ public class FUserService {
 
     public List<Bookmark> getBookmarksByUserId(Long userId) {
         return bookmarkMapper.findAllByUserUserId(userId);
+    }
+
+    public Optional<FUser> findFuserByUserId(Long userId) {
+        return fUserMapper.findById(userId);
     }
 }

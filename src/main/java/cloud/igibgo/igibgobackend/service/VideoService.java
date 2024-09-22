@@ -14,7 +14,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.swing.text.html.Option;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -50,8 +49,7 @@ public class VideoService {
     }
 
 
-
-        @Resource
+    @Resource
     private FUserMapper fUserMapper;
 
     @Resource
@@ -84,8 +82,10 @@ public class VideoService {
             String originalFilename = video.getOriginalFilename();
             assert originalFilename != null;
             String videoSuffix = originalFilename.substring(originalFilename.lastIndexOf(".") + 1);
-            if (!videoSuffix.equalsIgnoreCase("mp4") && !videoSuffix.equalsIgnoreCase("flv") && !videoSuffix.equalsIgnoreCase("mov")) {
-                throw new IllegalArgumentException("File type not supported, please upload video in mp4, mov or flv format");
+            // match video suffix
+            List<String> supportedSuffixList = List.of("mp4", "flv", "mov", "mkv");
+            if (supportedSuffixList.stream().noneMatch(suffix -> suffix.equalsIgnoreCase(videoSuffix))) {
+                throw new IllegalArgumentException("File type not supported, please upload video in mp4, flv, mov and mkv format");
             }
 
             ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
@@ -198,6 +198,7 @@ public class VideoService {
         Optional<VideoLike> videoLikeOptional = videoLikeMapper.findByVideoIdAndUserId(videoId, userId);
         return videoLikeOptional.isPresent();
     }
+
     public boolean isSaved(String videoId, Long userId) {
         List<VideoBookmark> videoBookmarkOptional = videoBookmarkMapper.findAllByVideoVideoIdAndBookmarkUserUserId(videoId, userId);
         return !videoBookmarkOptional.isEmpty();// not empty
@@ -215,9 +216,10 @@ public class VideoService {
         Long likeCount = videoLikeMapper.countByVideoVideoId(videoId);
         videoMapper.updateLikeCountByVideoId(videoId, likeCount);
     }
-    private void updateSaveCount(String videoId){
-        Long saveCount=videoBookmarkMapper.countByVideoVideoId(videoId);
-        videoMapper.updateSaveCountByVideoId(videoId,saveCount);
+
+    private void updateSaveCount(String videoId) {
+        Long saveCount = videoBookmarkMapper.countByVideoVideoId(videoId);
+        videoMapper.updateSaveCountByVideoId(videoId, saveCount);
     }
 
     public Video getVideoByVideoId(String videoId, Long userId) {
@@ -248,6 +250,9 @@ public class VideoService {
 
         // 4. update the view count
         updateViewCount(videoId);
+
+        // 5. update author view count
+
         return video;
     }
 
@@ -327,8 +332,8 @@ public class VideoService {
     @Resource
     private VideoBookmarkMapper videoBookmarkMapper;
 
-    public List<VideoBookmark> getVideoBookmarksByUserIdAndVideoId(Long userId,String videoId){
-        return videoBookmarkMapper.findAllByVideoVideoIdAndBookmarkUserUserId(videoId,userId);
+    public List<VideoBookmark> getVideoBookmarksByUserIdAndVideoId(Long userId, String videoId) {
+        return videoBookmarkMapper.findAllByVideoVideoIdAndBookmarkUserUserId(videoId, userId);
     }
 
     @Resource
@@ -337,7 +342,7 @@ public class VideoService {
     @PersistenceContext
     private EntityManager entityManager;
 
-    public void bookmarkVideo(String videoId,Long userId,List<String> bookmarkNames){
+    public void bookmarkVideo(String videoId, Long userId, List<String> bookmarkNames) {
         // Check 1: if the user exists
         Optional<FUser> userOptional = fUserMapper.findById(userId);
         if (userOptional.isEmpty()) {
@@ -353,7 +358,7 @@ public class VideoService {
         Set<String> bookmarkNamesSet = new HashSet<>(bookmarkNames);// remove duplicate bookmark names
         List<Bookmark> bookmarks = new ArrayList<>();// parallel array with bookmarkNamesSet
         // 1. delete all note bookmarks for the note and user
-        videoBookmarkMapper.deleteByVideoVideoIdAndBookmarkUserUserId(videoId,userId);
+        videoBookmarkMapper.deleteByVideoVideoIdAndBookmarkUserUserId(videoId, userId);
         // 2. delete all bookmarks with no note bookmarks
         entityManager.clear();// IMPORTANT: clear the entity manager to avoid stale data, TOOK ME SO LONG TO FIX THIS PROBLEM!
         List<Bookmark> allBookmarks = bookmarkMapper.findAllByUserUserId(userId);
@@ -379,12 +384,20 @@ public class VideoService {
         }
         // 4. Add video bookmarks
         for (Bookmark bookmark : bookmarks) {
-            VideoBookmark videoBookmark=new VideoBookmark();
-            videoBookmark.video=video;
-            videoBookmark.bookmark=bookmark;
+            VideoBookmark videoBookmark = new VideoBookmark();
+            videoBookmark.video = video;
+            videoBookmark.bookmark = bookmark;
             videoBookmarkMapper.save(videoBookmark);// save to db
         }
         // 5. Update save count
         updateSaveCount(videoId);
+    }
+
+    @Resource
+    private FUserService fUserService;
+    public List<Video> getAllVideosByUserId(Long userId) {
+        // check 1: user exist
+        fUserService.findFUser(userId, null);
+        return videoMapper.findAllByAuthorUserId(userId);
     }
 }

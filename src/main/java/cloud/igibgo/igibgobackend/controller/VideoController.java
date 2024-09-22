@@ -14,6 +14,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
+
 
 @Slf4j
 @RestController
@@ -60,6 +62,23 @@ public class VideoController {
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
+
+    /**
+     * get all videos by user id, used in user page
+     * @param userId author userId
+     * @return list of videos
+     */
+    @GetMapping("/get/by/userId")
+    public APIResponse<List<Video>> getAllVideosByUserId(Long userId) {
+        try{
+            List<Video> videos = videoService.getAllVideosByUserId(userId);
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, videos);
+        }
+        catch(Exception e){
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, e.getMessage(), null);
+        }
+    }
+    
 
     /**
      * get videos by tags
