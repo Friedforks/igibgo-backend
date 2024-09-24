@@ -1,21 +1,22 @@
 package cloud.igibgo.igibgobackend.controller;
 
 import cloud.igibgo.igibgobackend.entity.APIResponse;
-import cloud.igibgo.igibgobackend.entity.Note;
 import cloud.igibgo.igibgobackend.entity.Post;
 import cloud.igibgo.igibgobackend.entity.ResponseCodes;
 import cloud.igibgo.igibgobackend.service.PostService;
 import jakarta.annotation.Resource;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @Slf4j
@@ -24,6 +25,25 @@ import java.util.List;
 public class PostController {
     @Resource
     private PostService postService;
+
+    /**
+     * upload post image
+     * @param image   image file
+     * @param authorId author id
+     * @return image url
+     */
+    @PostMapping("/image/upload")
+    public APIResponse<String> uploadPostImage(MultipartFile image, Long authorId) {
+        try {
+            String img_url = postService.uploadPostImage(image, authorId);
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, img_url);
+        } catch (IOException e) {
+            log.error("Error in uploading post image: ", e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, e.getMessage(), null);
+        } catch (Exception e) {
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, e.getMessage(), null);
+        }
+    }
 
     // forum viewer side
 
@@ -106,7 +126,7 @@ public class PostController {
             if (authorId == null) {
                 return new APIResponse<>(ResponseCodes.BAD_REQUEST, "author id cannot be null", null);
             }
-            return new APIResponse<>(ResponseCodes.SUCCESS,null,postService.getPostsByAuthorId(authorId));
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, postService.getPostsByAuthorId(authorId));
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
@@ -149,7 +169,6 @@ public class PostController {
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
-
 
     // forum author side
     @GetMapping("/delete/reply")

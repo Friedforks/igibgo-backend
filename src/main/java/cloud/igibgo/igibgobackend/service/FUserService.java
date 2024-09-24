@@ -99,6 +99,9 @@ public class FUserService {
                 .substring(avatar.getOriginalFilename().lastIndexOf("."));
         try {
             Path tmpDir = Paths.get(ConstantUtil.tmpPath);
+            if (!Files.exists(tmpDir)) {
+                Files.createDirectories(tmpDir);
+            }
             Path tempAvatarFile = Files.createTempFile(tmpDir, null, avatarFileName);
             avatar.transferTo(tempAvatarFile);
             // time-consuming
@@ -107,7 +110,7 @@ public class FUserService {
             password = PasswordUtil.hashPassword(password);
             // 4. Save to db
             boolean isTeacher;
-            isTeacher = email.chars().anyMatch(Character::isDigit);
+            isTeacher = !email.chars().anyMatch(Character::isDigit);
             FUser fUser = new FUser(
                     username,
                     avatarUrl,
@@ -131,7 +134,7 @@ public class FUserService {
         }
     }
 
-    public FUser findFUser(Long userId, String token)throws IllegalArgumentException {
+    public FUser findFUser(Long userId, String token) throws IllegalArgumentException {
         Optional<FUser> fUserOptional = fUserMapper.findById(userId);
         if (fUserOptional.isEmpty()) {
             throw new IllegalArgumentException("User not found");
@@ -142,7 +145,6 @@ public class FUserService {
             // hide sensitive info
             fUser.password = null;
             fUser.email = null;
-            fUser.isTeacher = false;
             fUser.token = null;
         } else {
             // if token user isn't the same as the user requested
@@ -150,8 +152,10 @@ public class FUserService {
             if (email == null) {
                 throw new IllegalArgumentException("User not logged in");
             }
-            if (!email.equals(fUser.email)) {
-                throw new IllegalArgumentException("User not authorized");
+            if (!email.equals(fUser.email)) {// user mismatch, hide sensitive info
+                fUser.password = null;
+                fUser.email = null;
+                fUser.token = null;
             }
         }
         return fUser;
@@ -304,6 +308,9 @@ public class FUserService {
                 .substring(avatar.getOriginalFilename().lastIndexOf("."));
         try {
             Path tmpDir = Paths.get(ConstantUtil.tmpPath);
+            if (!Files.exists(tmpDir)) {
+                Files.createDirectories(tmpDir);
+            }
             Path tempAvatarFile = Files.createTempFile(tmpDir, null, avatarFileName);
             avatar.transferTo(tempAvatarFile);
             // parallel processing (2,3) and (4) using virtual threads

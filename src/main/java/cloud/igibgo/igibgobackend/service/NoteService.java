@@ -63,12 +63,14 @@ public class NoteService {
     @Resource
     private UploadUtil uploadUtil;
 
-    public void uploadNote(MultipartFile note, Long authorId, Long collectionId, String title, List<String> tags) throws IOException {
+    public void uploadNote(MultipartFile note, Long authorId, Long collectionId, String title, List<String> tags)
+            throws IOException {
         Optional<FUser> author = fUserMapper.findById(authorId);
-        // Check 1: if the author  exist
+        // Check 1: if the author exist
         if (author.isPresent()) {
             // Check 2: if collection exist (if collection id is not null)
-            /* it exists only when
+            /*
+             * it exists only when
              * 1. collection id is null
              * 2. collection id is not null and collection exists
              */
@@ -81,14 +83,21 @@ public class NoteService {
             assert originalFilename != null;
             String suffix = originalFilename.substring(originalFilename.lastIndexOf(".") + 1);
             if (!suffix.equalsIgnoreCase("pdf")) {// only support pdf
-                throw new IllegalArgumentException("File type not supported, please upload notes in PDF, MD or DOCX format");
+                throw new IllegalArgumentException(
+                        "File type not supported, please upload notes in PDF, MD or DOCX format");
             }
             // 1. Generate new file name
             String generatedNoteId = UUID.randomUUID().toString();
             String newFilename = generatedNoteId + "." + suffix;
             // 2. create the note folder if empty
-            Path tmpDir= Paths.get(ConstantUtil.tmpPath);
-            Path tmpNoteFile = Files.createTempFile(tmpDir,null, newFilename);
+            if (!Files.exists(Paths.get(ConstantUtil.tmpPath))) {
+                Files.createDirectory(Paths.get(ConstantUtil.tmpPath));
+            }
+            Path tmpDir = Paths.get(ConstantUtil.tmpPath);
+            if (!Files.exists(tmpDir)) {
+                Files.createDirectories(tmpDir);
+            }
+            Path tmpNoteFile = Files.createTempFile(tmpDir, null, newFilename);
             note.transferTo(tmpNoteFile);
             // 3. upload note to COS
             String url = uploadUtil.upload(tmpNoteFile.toFile(), newFilename, "note/");
@@ -177,7 +186,7 @@ public class NoteService {
             throw new IllegalArgumentException("You have not liked the note");
         }
         // Check 3: if the user exists
-        if(userOptional.isEmpty()) {
+        if (userOptional.isEmpty()) {
             throw new IllegalArgumentException("User not found with the given user id");
         }
         noteLikeMapper.deleteById(noteLikeOptional.get().noteLikeId);
@@ -221,12 +230,11 @@ public class NoteService {
         return noteMapper.findAllByTitle(title, pageRequest);
     }
 
-
     public Set<String> getAllTags() {
         // fetch all distinct tag content from db
         List<String> tags = noteMapper.findAllTags();
         // convert to set to remove duplicate:
-        Set<String> distinctTags  = new HashSet<>(tags);
+        Set<String> distinctTags = new HashSet<>(tags);
         return distinctTags;
     }
 
@@ -249,7 +257,8 @@ public class NoteService {
 
         // 1. delete the note from COS
         // 1.1 convert public access url to file path in COS
-        // E.g. public accessurl= https://igibgo-1305786880.cos.ap-guangzhou.myqcloud.com/note/1b3e7b7b.pdf
+        // E.g. public accessurl=
+        // https://igibgo-1305786880.cos.ap-guangzhou.myqcloud.com/note/1b3e7b7b.pdf
         // and file path in COS= note/1b3e7b7b.pdf
         String filePath = "note/" + note.noteUrl.substring(note.noteUrl.indexOf("/"));
         uploadUtil.deleteObject(filePath);
@@ -319,7 +328,6 @@ public class NoteService {
     @PersistenceContext
     private EntityManager entityManager;
 
-
     public void bookmarkNote(String noteId, Long userId, List<String> bookmarkNames) {
         // Check 1: if the user exists
         Optional<FUser> userOptional = fUserMapper.findById(userId);
@@ -338,7 +346,8 @@ public class NoteService {
         // 1. delete all note bookmarks for the note and user
         noteBookmarkMapper.deleteAllByBookmarkUserUserIdAndNoteNoteId(userId, noteId);
         // 2. delete all bookmarks with no note bookmarks
-        entityManager.clear();// IMPORTANT: clear the entity manager to avoid stale data, TOOK ME SO LONG TO FIX THIS PROBLEM!
+        entityManager.clear();// IMPORTANT: clear the entity manager to avoid stale data, TOOK ME SO LONG TO
+                              // FIX THIS PROBLEM!
         List<Bookmark> allBookmarks = bookmarkMapper.findAllByUserUserId(userId);
         for (Bookmark bookmark : allBookmarks) {
             if (bookmark.noteBookmarks.isEmpty()) {
@@ -356,7 +365,8 @@ public class NoteService {
                 bookmarkMapper.save(bookmark);// save to db
             }
             // 4. add the bookmark to the list (for later use)
-            // there's no .isPresent check since the bookmark must exist after the above check
+            // there's no .isPresent check since the bookmark must exist after the above
+            // check
             Bookmark bookmark = bookmarkMapper.findByBookmarkName(bookmarkName).get();
             bookmarks.add(bookmark);
         }

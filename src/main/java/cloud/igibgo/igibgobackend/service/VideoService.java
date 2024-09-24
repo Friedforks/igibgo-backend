@@ -48,7 +48,6 @@ public class VideoService {
         return videoMapper.searchByTitle(videoTitle, pageable);
     }
 
-
     @Resource
     private FUserMapper fUserMapper;
 
@@ -61,16 +60,17 @@ public class VideoService {
     private UploadUtil uploadUtil;
 
     public void uploadVideo(MultipartFile video,
-                            MultipartFile videoCover,
-                            Long authorId,
-                            Long collectionId,
-                            String title,
-                            List<String> tags) throws IOException, ExecutionException, InterruptedException {
+            MultipartFile videoCover,
+            Long authorId,
+            Long collectionId,
+            String title,
+            List<String> tags) throws IOException, ExecutionException, InterruptedException {
         Optional<FUser> author = fUserMapper.findById(authorId);
-        // Check 1: if the author  exist
+        // Check 1: if the author exist
         if (author.isPresent()) {
             // Check 2: if collection exist (if collection id is not null)
-            /* it exists only when
+            /*
+             * it exists only when
              * 1. collection id is null
              * 2. collection id is not null and collection exists
              */
@@ -85,7 +85,8 @@ public class VideoService {
             // match video suffix
             List<String> supportedSuffixList = List.of("mp4", "flv", "mov", "mkv");
             if (supportedSuffixList.stream().noneMatch(suffix -> suffix.equalsIgnoreCase(videoSuffix))) {
-                throw new IllegalArgumentException("File type not supported, please upload video in mp4, flv, mov and mkv format");
+                throw new IllegalArgumentException(
+                        "File type not supported, please upload video in mp4, flv, mov and mkv format");
             }
 
             ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
@@ -95,6 +96,9 @@ public class VideoService {
                 // 1.1 convert video to file
                 String newFilename = generatedVideoId + "." + videoSuffix;
                 Path tmpDir = Paths.get(ConstantUtil.tmpPath);
+                if (!Files.exists(tmpDir)) {
+                    Files.createDirectories(tmpDir);
+                }
                 Path tmpVideoFile = Files.createTempFile(tmpDir, null, newFilename);
                 video.transferTo(tmpVideoFile);
                 // 1.2 upload video to COS
@@ -104,6 +108,9 @@ public class VideoService {
                 // 2.1 convert video cover to file
                 String newCoverFilename = generatedVideoId + "-cover.png";
                 Path tmpDir = Paths.get(ConstantUtil.tmpPath);
+                if (!Files.exists(tmpDir)) {
+                    Files.createDirectories(tmpDir);
+                }
                 Path tmpCoverFile = Files.createTempFile(tmpDir, null, newCoverFilename);
                 videoCover.transferTo(tmpCoverFile);
                 // 2.2 upload video cover to COS
@@ -193,14 +200,14 @@ public class VideoService {
         updateLikeCount(videoId);
     }
 
-
     public boolean isLiked(String videoId, Long userId) {
         Optional<VideoLike> videoLikeOptional = videoLikeMapper.findByVideoIdAndUserId(videoId, userId);
         return videoLikeOptional.isPresent();
     }
 
     public boolean isSaved(String videoId, Long userId) {
-        List<VideoBookmark> videoBookmarkOptional = videoBookmarkMapper.findAllByVideoVideoIdAndBookmarkUserUserId(videoId, userId);
+        List<VideoBookmark> videoBookmarkOptional = videoBookmarkMapper
+                .findAllByVideoVideoIdAndBookmarkUserUserId(videoId, userId);
         return !videoBookmarkOptional.isEmpty();// not empty
     }
 
@@ -255,7 +262,6 @@ public class VideoService {
 
         return video;
     }
-
 
     public void deleteVideo(Long authorId, String videoId) {
         // Check 1: if author exists
@@ -328,7 +334,6 @@ public class VideoService {
         }
     }
 
-
     @Resource
     private VideoBookmarkMapper videoBookmarkMapper;
 
@@ -360,7 +365,8 @@ public class VideoService {
         // 1. delete all note bookmarks for the note and user
         videoBookmarkMapper.deleteByVideoVideoIdAndBookmarkUserUserId(videoId, userId);
         // 2. delete all bookmarks with no note bookmarks
-        entityManager.clear();// IMPORTANT: clear the entity manager to avoid stale data, TOOK ME SO LONG TO FIX THIS PROBLEM!
+        entityManager.clear();// IMPORTANT: clear the entity manager to avoid stale data, TOOK ME SO LONG TO
+                              // FIX THIS PROBLEM!
         List<Bookmark> allBookmarks = bookmarkMapper.findAllByUserUserId(userId);
         for (Bookmark bookmark : allBookmarks) {
             if (bookmark.noteBookmarks.isEmpty()) {
@@ -378,7 +384,8 @@ public class VideoService {
                 bookmarkMapper.save(bookmark);// save to db
             }
             // 4. add the bookmark to the list (for later use)
-            // there's no .isPresent check since the bookmark must exist after the above check
+            // there's no .isPresent check since the bookmark must exist after the above
+            // check
             Bookmark bookmark = bookmarkMapper.findByBookmarkName(bookmarkName).get();
             bookmarks.add(bookmark);
         }
@@ -395,6 +402,7 @@ public class VideoService {
 
     @Resource
     private FUserService fUserService;
+
     public List<Video> getAllVideosByUserId(Long userId) {
         // check 1: user exist
         fUserService.findFUser(userId, null);

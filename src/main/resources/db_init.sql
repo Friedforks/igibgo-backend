@@ -36,12 +36,12 @@ create table note
     note_url      text      not null,
     upload_date   timestamp not null,
     title         text      not null,
-    title_tsv     tsvector  generated always as ( to_tsvector('chinese',title) ) stored
+    title_tsv     tsvector generated always as ( to_tsvector('chinese', title) ) stored
 );
 
 
 -- index tsvector
-create index note_title_tsv_idx on note using gin(title_tsv);
+create index note_title_tsv_idx on note using gin (title_tsv);
 
 
 create table note_tag
@@ -105,7 +105,7 @@ create table video
 );
 
 -- add index for title_tsv
-create index video_title_tsv_idx on video using gin(title_tsv);
+create index video_title_tsv_idx on video using gin (title_tsv);
 
 create table video_tag
 (
@@ -170,4 +170,11 @@ create table post_reply
     post_id       text      not null references post (post_id) on delete cascade,
     reply_content text      not null,
     author        int       not null references f_user (user_id) on delete cascade
+);
+
+create table post_images
+(
+    post_image_id text not null primary key,
+    user_id       int       not null references f_user (user_id) on delete cascade,
+    image_url     text      not null
 );

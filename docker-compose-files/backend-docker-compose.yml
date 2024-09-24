@@ -1,0 +1,18 @@
+version: '3'
+services:
+  igibgo-backend:
+    image: registry.cn-hangzhou.aliyuncs.com/friedforks/igibgo-backend:v2
+    container_name: igibgo-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres_db:5432/igibgo?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+      SPRING_REDIS_HOST: redis_db
+      SPRING_REDIS_PORT: 6379
+    ports:
+      - "8001:8001"
+    restart: always
+    networks:
+      - igibgo_network
+
+networks:
+  igibgo_network:
+    external: true
