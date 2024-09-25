@@ -238,9 +238,13 @@ public class NoteService {
         return distinctTags;
     }
 
-    public void deleteNote(Long author, String noteId) {
-        // Check 1: if author exist
-        Optional<FUser> authorOptional = fUserMapper.findById(author);
+    public void deleteNote(String token, String noteId) {
+        // Check 1: if token exists
+        String userEmail = redisTemplate.opsForValue().get(token);
+        if (userEmail == null) {
+            throw new IllegalArgumentException("User not logged in");
+        }
+        Optional<FUser> authorOptional = fUserMapper.findByEmail(userEmail);
         if (authorOptional.isEmpty()) {
             throw new IllegalArgumentException("User not found");
         }
@@ -249,9 +253,10 @@ public class NoteService {
         if (noteOptional.isEmpty()) {
             throw new IllegalArgumentException("Note not found");
         }
+        FUser author = authorOptional.get();
         // Check 3: if the author is the author of the note
         Note note = noteOptional.get();
-        if (!note.author.userId.equals(author)) {
+        if (!note.author.userId.equals(author.userId)) {
             throw new IllegalArgumentException("You are not the author of the note");
         }
 

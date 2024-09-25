@@ -1,3 +1,5 @@
-docker build -t igibgo-backend:v2 .
-docker tag igibgo-backend:v2 registry.cn-hangzhou.aliyuncs.com/friedforks/igibgo-backend:v2
-docker push registry.cn-hangzhou.aliyuncs.com/friedforks/igibgo-backend:v2
+$version="v2.1"
+
+docker build -t igibgo-backend:$version .
+docker tag igibgo-backend:$version registry.cn-hangzhou.aliyuncs.com/friedforks/igibgo-backend:$version
+docker push registry.cn-hangzhou.aliyuncs.com/friedforks/igibgo-backend:$version

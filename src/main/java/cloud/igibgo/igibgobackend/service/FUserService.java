@@ -52,10 +52,10 @@ public class FUserService {
             String authCode = PasswordUtil.generateAuthCode();
             mailUtil.sendMail(email, "IGIBGO authentication code",
                     "Your authentication code is: " + authCode +
-                            ". Please copy and paste the authentication code to the registration page in 5 minutes before it expire.");
+                            ". Please copy and paste the authentication code to the registration page in 15 minutes before it expire.");
 
             // 2. Save to redis
-            redisTemplate.opsForValue().set("register" + email, password + authCode, 5, TimeUnit.MINUTES);
+            redisTemplate.opsForValue().set("register" + email, password + authCode, 15, TimeUnit.MINUTES);
             return new APIResponse<>(ResponseCodes.SUCCESS, "Email sent successfully", null);
         } catch (Exception e) {
             log.error("Failed to send email or save to redis: ", e);
@@ -77,13 +77,13 @@ public class FUserService {
      * @return token
      */
     public APIResponse<FUser> userRegister2(String username,
-            String authCode,
-            String email,
-            String password,
-            MultipartFile avatar) {
+                                            String authCode,
+                                            String email,
+                                            String password,
+                                            MultipartFile avatar) {
         // Check 1: check the auth code
         String redisValue = redisTemplate.opsForValue().get("register" + email);// redis value contains password + auth
-                                                                                // code
+        // code
         if (redisValue == null) {
             return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Wrong email entered or the auth code has expired.",
                     null);
@@ -190,6 +190,7 @@ public class FUserService {
         return new APIResponse<>(ResponseCodes.SUCCESS, "Login successfully ", fuser);
     }
 
+
     public void logout(String token) {
         // check 1: if token is null
         if (token == null) {
@@ -218,14 +219,20 @@ public class FUserService {
         return fUserOptional.get();
     }
 
-    public APIResponse<FUser> updateFUser(FUser fUser) {
-        try {
-            fUserMapper.save(fUser);
-            return new APIResponse<>(ResponseCodes.SUCCESS, null, fUser);
-        } catch (Exception e) {
-            log.error("Failed to update user: ", e);
-            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, e.getMessage(), null);
+    public void updateUsername(String token, String newUsername) {
+        // check 1: if token exists
+        String email = redisTemplate.opsForValue().get(token);
+        if (email == null) {
+            throw new IllegalArgumentException("User not logged in");
         }
+        // check 2: if user exists
+        Optional<FUser> fUserOptional = fUserMapper.findByEmail(email);
+        if (fUserOptional.isEmpty()) {
+            throw new IllegalArgumentException("User not found");
+        }
+        FUser fUser = fUserOptional.get();
+        // update username in db
+        fUserMapper.updateUsernameByUserId(fUser.userId, newUsername);
     }
 
     @Resource
@@ -291,7 +298,7 @@ public class FUserService {
         return new APIResponse<>(ResponseCodes.SUCCESS, null, totalView);
     }
 
-    public APIResponse<FUser> updateAvatar(String token, MultipartFile avatar) {
+    public APIResponse<Void> updatePassword(String token, String currentPassword, String newPassword) {
         // check 1: if token exists
         String email = redisTemplate.opsForValue().get(token);
         if (email == null) {
@@ -303,33 +310,50 @@ public class FUserService {
             return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null);
         }
         FUser fUser = fUserOptional.get();
+        // check 3: if old password is correct
+        if (!fUser.password.equals(PasswordUtil.hashPassword(currentPassword))) {
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, "Current password incorrect", null);
+        }
+        // 1. encrypt new password
+        fUser.password = PasswordUtil.hashPassword(newPassword);
+        // 2. save to db
+        fUserMapper.updatePasswordByUserId(fUser.userId, fUser.password);
+        return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
+    }
+
+    public void updateAvatar(String token, MultipartFile avatar) throws IOException {
+        // check 1: if token exists
+        String email = redisTemplate.opsForValue().get(token);
+        if (email == null) {
+            throw new IllegalArgumentException("User not logged in");
+        }
+        // check 2: if user exists
+        Optional<FUser> fUserOptional = fUserMapper.findByEmail(email);
+        if (fUserOptional.isEmpty()) {
+            throw new IllegalArgumentException("User not found");
+        }
+        FUser fUser = fUserOptional.get();
         // 1. upload the new avatar
         String avatarFileName = UUID.randomUUID() + Objects.requireNonNull(avatar.getOriginalFilename())
                 .substring(avatar.getOriginalFilename().lastIndexOf("."));
-        try {
-            Path tmpDir = Paths.get(ConstantUtil.tmpPath);
-            if (!Files.exists(tmpDir)) {
-                Files.createDirectories(tmpDir);
-            }
-            Path tempAvatarFile = Files.createTempFile(tmpDir, null, avatarFileName);
-            avatar.transferTo(tempAvatarFile);
-            // parallel processing (2,3) and (4) using virtual threads
-            // time-consuming
-            // for example
-            // avatarUrl="https://igibgo-1306825637.cos.ap-shanghai.myqcloud.com/avatar/1b9d6bc7-4f3f-4f3f-8f3f-4f3f8f3f4f3f.jpg"
-            String avatarUrl = uploadUtil.upload(tempAvatarFile.toFile(), avatarFileName, "avatar/");
-            // 2. update the avatar
-            fUser.avatarUrl = avatarUrl;
-            // 3. save to db
-            fUserMapper.save(fUser);
-            // 4. delete the old avatar
-            String oldAvatarFileName = fUser.avatarUrl.substring(fUser.avatarUrl.lastIndexOf("/") + 1);
-            uploadUtil.deleteObject("avatar/" + oldAvatarFileName);
-        } catch (IOException e) {
-            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
+        Path tmpDir = Paths.get(ConstantUtil.tmpPath);
+        if (!Files.exists(tmpDir)) {
+            Files.createDirectories(tmpDir);
         }
-        return new APIResponse<>(ResponseCodes.SUCCESS, null, fUser);
+        Path tempAvatarFile = Files.createTempFile(tmpDir, null, avatarFileName);
+        avatar.transferTo(tempAvatarFile);
+        // parallel processing (2,3) and (4) using virtual threads
+        // time-consuming
+        // for example
+        // avatarUrl="https://igibgo-1306825637.cos.ap-shanghai.myqcloud.com/avatar/1b9d6bc7-4f3f-4f3f-8f3f-4f3f8f3f4f3f.jpg"
+        // 2. delete the old avatar
+        String oldAvatarFileName = fUser.avatarUrl.substring(fUser.avatarUrl.lastIndexOf("/") + 1);
+        uploadUtil.deleteObject("avatar/" + oldAvatarFileName);
+        String newAvatarUrl = uploadUtil.upload(tempAvatarFile.toFile(), avatarFileName, "avatar/");
+        // 3. update the avatar url in db
+        fUserMapper.updateAvatarUrlByUserId(fUser.userId, newAvatarUrl);
     }
+
 
     @Resource
     private BookmarkMapper bookmarkMapper;

@@ -206,4 +206,8 @@ public class UploadUtil {
         // 确认本进程不再使用 cosClient 实例之后，关闭即可
         cosClient.shutdown();
     }
+
+    public  String convertPublicAccessUrlToKey(String folder,String publicAccessUrl){
+        return folder+publicAccessUrl.substring(publicAccessUrl.indexOf("/"));
+    }
 }

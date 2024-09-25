@@ -260,10 +260,10 @@ public class NoteController {
         }
     }
 
-    @GetMapping("/delete")
-    APIResponse<String> deleteNote(Long authorId, String noteId) {
+    @DeleteMapping("/delete")
+    APIResponse<String> deleteNote(String token, String noteId) {
         try {
-            noteService.deleteNote(authorId, noteId);
+            noteService.deleteNote(token, noteId);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, "Note deleted");
         } catch (IllegalArgumentException e) {
             log.error("Illegal argument: " + e.getMessage(), e);

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -40,10 +41,10 @@ public class FUserController {
      */
     @PostMapping("/register2")
     public APIResponse<FUser> userRegister2(String username,
-            String authCode,
-            String email,
-            String password,
-            MultipartFile avatar) {
+                                            String authCode,
+                                            String email,
+                                            String password,
+                                            MultipartFile avatar) {
         return fUserService.userRegister2(username, authCode, email, password, avatar);
     }
 
@@ -84,20 +85,16 @@ public class FUserController {
     }
 
     @GetMapping("/userId")
-    public APIResponse<FUser> findFUser(Long userId, String token){
-        try{
-            return new APIResponse<FUser>(ResponseCodes.SUCCESS, null, fUserService.findFUser(userId,token));
-        }catch (IllegalArgumentException e){
+    public APIResponse<FUser> findFUser(Long userId, String token) {
+        try {
+            return new APIResponse<FUser>(ResponseCodes.SUCCESS, null, fUserService.findFUser(userId, token));
+        } catch (IllegalArgumentException e) {
             return new APIResponse<FUser>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
-        }catch (Exception e){
+        } catch (Exception e) {
             return new APIResponse<FUser>(ResponseCodes.INTERNAL_SERVER_ERROR, e.getMessage(), null);
         }
     }
 
-    @PostMapping("/update")
-    public APIResponse<FUser> updateFUser(FUser fUser) {
-        return fUserService.updateFUser(fUser);
-    }
 
     // statistics
     @GetMapping("/total/like")
@@ -127,9 +124,39 @@ public class FUserController {
         }
     }
 
+    @PostMapping("/update/password")
+    public APIResponse<Void> updatePassword(String token, String currentPassword, String newPassword) {
+        try {
+            return fUserService.updatePassword(token, currentPassword, newPassword);
+        } catch (IllegalArgumentException e) {
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
+        } catch (Exception e) {
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, e.getMessage(), null);
+        }
+    }
+
+    @PostMapping("/update/username")
+    public APIResponse<Void> updateUsername(String token, String newUsername) {
+        try {
+            fUserService.updateUsername(token, newUsername);
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
+        } catch (IllegalArgumentException e) {
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
+        } catch (Exception e) {
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, e.getMessage(), null);
+        }
+    }
+
     @PostMapping("/update/avatar")
-    public APIResponse<FUser> updateAvatar(String token, MultipartFile avatar) {
-        return fUserService.updateAvatar(token, avatar);
+    public APIResponse<Void> updateAvatar(String token, MultipartFile avatar) {
+        try {
+            fUserService.updateAvatar(token, avatar);
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
+        } catch (IllegalArgumentException e) {
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
+        } catch (Exception e) {
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, e.getMessage(), null);
+        }
     }
 
     @GetMapping("/bookmark/get/userId")

@@ -56,4 +56,6 @@ public interface NoteMapper extends JpaRepository<Note, String> {
 
     // find all by user
     public List<Note> findAllByAuthorUserId(Long userId);
+
+
 }
