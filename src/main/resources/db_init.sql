@@ -154,8 +154,12 @@ create table post
     upload_date  timestamp not null,
     post_content text      not null,
     post_type    int       not null,
-    title        text      not null
+    title        text      not null,
+    title_tsv   tsvector generated always as ( to_tsvector('chinese', title) ) stored,
+    post_content_tsv tsvector generated always as ( to_tsvector('chinese', post_content) ) stored
 );
+
+CREATE INDEX post_content_tsv_idx ON post USING GIN (post_content_tsv);
 
 create table post_tag
 (

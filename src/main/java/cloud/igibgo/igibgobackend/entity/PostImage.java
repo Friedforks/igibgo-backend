@@ -10,6 +10,6 @@ public class PostImage {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
-    public FUser fUser;
+    public FUser author;
     public String imageUrl;
 }

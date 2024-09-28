@@ -5,7 +5,6 @@ import cloud.igibgo.igibgobackend.mapper.*;
 import cloud.igibgo.igibgobackend.util.ConstantUtil;
 import cloud.igibgo.igibgobackend.util.UploadUtil;
 import jakarta.annotation.Resource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -17,9 +16,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @Service
 public class PostService {
@@ -63,7 +59,7 @@ public class PostService {
         String image_url = uploadUtil.upload(tmpImageFile.toFile(), newFileName, "post-img/");
         PostImage postImage = new PostImage();
         postImage.postImageId = generatedImageId;
-        postImage.fUser = userOptional.get();
+        postImage.author = userOptional.get();
         postImage.imageUrl = image_url;
         postImageMapper.save(postImage);
         return image_url;
@@ -116,32 +112,40 @@ public class PostService {
     @Resource
     private PostTagMapper postTagMapper;
 
-    public void uploadPost(String postContent, List<String> tags, Long authorId, String title) {
-        // Check 1: if the author exist
-        Optional<FUser> userOptional = fUserMapper.findById(authorId);
-        if (userOptional.isPresent()) {
-            // 1. Generate post Id
-            String generatedPostId = UUID.randomUUID().toString();
-            // 2. Create a post
-            Post post = new Post();
-            post.postId = generatedPostId;
-            post.author = userOptional.get();
-            post.postContent = postContent;
-            post.title = title;
-            // 2. Save post
-            postMapper.save(post);
-            // 3. Save tags
-            List<PostTag> postTags = new ArrayList<>();
-            for (String tag : tags) {
-                PostTag postTag = new PostTag();
-                postTag.post = post;
-                postTag.tagText = tag;
-                postTags.add(postTag);
-            }
-            postTagMapper.saveAll(postTags);
-        } else {
-            throw new IllegalArgumentException("Author does not exist");
+    public void uploadPost(String postContent, String tags, String token, String title) {
+        // Check 1: if token is valid
+        String email = redisTemplate.opsForValue().get(token);
+        if (email == null || email.isEmpty()) {
+            throw new IllegalArgumentException("Token is invalid, perhaps you have not logged in");
         }
+        // 1. get user by email
+        Optional<FUser> userOptional = fUserMapper.findByEmail(email);
+        // Check 2: if the user exist
+        if(userOptional.isEmpty()){
+            throw new IllegalArgumentException("User does not exist");
+        }
+        FUser user = userOptional.get();
+        // 1. Generate post Id
+        String generatedPostId = UUID.randomUUID().toString();
+        // 2. Create a post
+        Post post = new Post();
+        post.postId = generatedPostId;
+        post.author = user;
+        post.postContent = postContent;
+        post.title = title;
+        // 2. Save post
+        postMapper.save(post);
+        // 3. Split tags into list
+        String[] tagList = tags.split(",");
+        // 3. Save tags
+        List<PostTag> postTags = new ArrayList<>();
+        for (String tag : tagList) {
+            PostTag postTag = new PostTag();
+            postTag.post = post;
+            postTag.tagText = tag;
+            postTags.add(postTag);
+        }
+        postTagMapper.saveAll(postTags);
     }
 
     public void deleteReply(String replyId, Long authorId) {
@@ -163,6 +167,10 @@ public class PostService {
 
     public List<Post> getPostsByAuthorId(Long authorId) {
         return postMapper.findAllByAuthorId(authorId);
+    }
+
+    public Page<Post> getPostsByKeywords(String keyword,PageRequest pageRequest){
+        return postMapper.findAllByTitleContainsOrPostContentContains(keyword,pageRequest);
     }
 
     @Resource
@@ -190,21 +198,30 @@ public class PostService {
         }
     }
 
-    public void deletePost(String postId, Long authorId) {
-        // Check 1: if the post exist
+    public void deletePost(String postId,String token) {
+        // Check 1: if token is valid
+        String email = redisTemplate.opsForValue().get(token);
+        if (email == null || email.isEmpty()) {
+            throw new IllegalArgumentException("Token is invalid, perhaps you have not logged in");
+        }
+        // 1. get user by email
+        Optional<FUser> userOptional = fUserMapper.findByEmail(email);
+        // Check 2: if the user exist
+        if(userOptional.isEmpty()){
+            throw new IllegalArgumentException("User does not exist");
+        }
+        FUser user = userOptional.get();
+        // Check 3: if the post exist
         Optional<Post> postOptional = postMapper.findById(postId);
-        if (postOptional.isPresent()) {
-            // Check 2: if the author exist
-            Optional<FUser> userOptional = fUserMapper.findById(authorId);
-            if (userOptional.isPresent()) {
-                // 1. delete the post
-                postMapper.deleteById(postId);
-            } else {
-                throw new IllegalArgumentException("Author does not exist");
-            }
-        } else {
+        if(postOptional.isEmpty()){
             throw new IllegalArgumentException("Post does not exist");
         }
+        Post post = postOptional.get();
+        // Check 4: if the post author is the same as the user
+        if(!post.author.equals(user)){
+            throw new IllegalArgumentException("You are not the author of the post");
+        }
+        // 2. delete the post
+        postMapper.deleteById(postId);
     }
-
 }

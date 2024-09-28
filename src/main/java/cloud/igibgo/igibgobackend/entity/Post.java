@@ -1,9 +1,9 @@
 package cloud.igibgo.igibgobackend.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,8 +11,8 @@ import java.util.List;
 @Table(name = "post")
 public class Post {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     public String postId;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "author")
     public FUser author;
@@ -23,9 +23,11 @@ public class Post {
     public int postType;
     public String title;
 
+    @JsonManagedReference
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     public List<PostTag> tags = new ArrayList<>();
 
+    @JsonManagedReference
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     public List<PostReply> replies = new ArrayList<>();
 }

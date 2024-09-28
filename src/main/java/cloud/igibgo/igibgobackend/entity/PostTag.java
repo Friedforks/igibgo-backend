@@ -1,5 +1,6 @@
 package cloud.igibgo.igibgobackend.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 @Entity
@@ -9,6 +10,7 @@ public class PostTag {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     public Long postTagId;
 
+    @JsonBackReference
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "post_id")
     public Post post;

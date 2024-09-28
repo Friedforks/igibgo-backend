@@ -10,10 +10,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -28,7 +25,8 @@ public class PostController {
 
     /**
      * upload post image
-     * @param image   image file
+     *
+     * @param image    image file
      * @param authorId author id
      * @return image url
      */
@@ -136,6 +134,21 @@ public class PostController {
         }
     }
 
+    @GetMapping("/get/keyword")
+    APIResponse<Page<Post>> getPostsByKeywords(String keyword,int page,int size){
+        try{
+            // create page request
+            PageRequest pageRequest=PageRequest.of(page,size);
+            return new APIResponse<>(ResponseCodes.SUCCESS,null,postService.getPostsByKeywords(keyword,pageRequest));
+        } catch (DataAccessException e) {
+            log.error("Database query error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
+        } catch (Exception e) {
+            log.error("Internal server error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
+        }
+    }
+
     @GetMapping("/like")
     APIResponse<Void> likePost(String postId) {
         try {
@@ -187,11 +200,11 @@ public class PostController {
     }
 
     // forum author side
-    @GetMapping("/upload")
-    APIResponse<Void> uploadPost(String postContent, List<String> tags, Long authorId, String title) {
+    @PostMapping("/upload")
+    APIResponse<Void> uploadPost(String postContent, String tags, String token, String title) {
         try {
             // 1. upload the post
-            postService.uploadPost(postContent, tags, authorId, title);
+            postService.uploadPost(postContent, tags, token, title);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);
@@ -203,15 +216,18 @@ public class PostController {
     }
 
     // delete
-    @GetMapping("/delete")
-    APIResponse<Void> deletePost(String postId, Long authorId) {
+    @DeleteMapping("/delete")
+    APIResponse<Void> deletePost(String postId, String token) {
         try {
             // 1. delete the post
-            postService.deletePost(postId, authorId);
+            postService.deletePost(postId, token);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
+        } catch (IllegalArgumentException e) {
+            log.error("Illegal argument: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
         } catch (Exception e) {
             log.error("Internal server error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
