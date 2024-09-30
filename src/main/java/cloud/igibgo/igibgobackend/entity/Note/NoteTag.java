@@ -1,4 +1,4 @@
-package cloud.igibgo.igibgobackend.entity;
+package cloud.igibgo.igibgobackend.entity.Note;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;

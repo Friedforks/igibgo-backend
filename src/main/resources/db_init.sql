@@ -147,15 +147,15 @@ create table video_like
 
 create table post
 (
-    post_id      text      not null primary key,
-    author       int       not null references f_user (user_id) on delete cascade,
-    like_count   int       not null default 0,
-    view_count   int       not null default 0,
-    upload_date  timestamp not null,
-    post_content text      not null,
-    post_type    int       not null,
-    title        text      not null,
-    title_tsv   tsvector generated always as ( to_tsvector('chinese', title) ) stored,
+    post_id          text      not null primary key,
+    author           int       not null references f_user (user_id) on delete cascade,
+    like_count       int       not null default 0,
+    view_count       int       not null default 0,
+    upload_date      timestamp not null,
+    post_content     text      not null,
+    post_type        int       not null,
+    title            text      not null,
+    title_tsv        tsvector generated always as ( to_tsvector('chinese', title) ) stored,
     post_content_tsv tsvector generated always as ( to_tsvector('chinese', post_content) ) stored
 );
 
@@ -168,17 +168,38 @@ create table post_tag
     tag_text    text      not null
 );
 
+create table post_view
+(
+    post_view_id bigserial primary key not null,
+    post_id      text                  not null references post (post_id) on delete cascade,
+    user_id      bigint                not null references f_user (user_id) on delete cascade
+);
+
 create table post_reply
 (
-    post_reply_id bigserial not null primary key,
-    post_id       text      not null references post (post_id) on delete cascade,
-    reply_content text      not null,
-    author        int       not null references f_user (user_id) on delete cascade
+    post_reply_id     bigserial not null primary key,
+    post_id           text      not null references post (post_id) on delete cascade,
+    parent_reply_id   bigint references post_reply (post_reply_id) on delete cascade,
+    reply_content     text      not null,
+    like_count        bigint    not null default 0,
+    reply_date        timestamp not null,
+    child_reply_count int       not null default 0,
+    user_id           int       not null references f_user (user_id) on delete cascade,
+    reply_content_tsv tsvector generated always as ( to_tsvector('chinese', reply_content) ) stored
+);
+
+create index reply_content_tsv_idx on post_reply using gin (reply_content_tsv);
+
+create table post_reply_like
+(
+    post_reply_like_id bigserial primary key not null,
+    post_reply_id      bigint references post_reply (post_reply_id) on delete cascade,
+    user_id            bigint references f_user (user_id) on delete cascade
 );
 
 create table post_images
 (
     post_image_id text not null primary key,
-    user_id       int       not null references f_user (user_id) on delete cascade,
-    image_url     text      not null
+    user_id       int  not null references f_user (user_id) on delete cascade,
+    image_url     text not null
 );

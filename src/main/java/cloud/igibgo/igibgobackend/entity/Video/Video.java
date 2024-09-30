@@ -1,13 +1,13 @@
-package cloud.igibgo.igibgobackend.entity;
+package cloud.igibgo.igibgobackend.entity.Video;
 
+import cloud.igibgo.igibgobackend.entity.FUser.Collection;
+import cloud.igibgo.igibgobackend.entity.FUser.FUser;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.TimeZone;
 
 @Entity
 @Table(name = "video")

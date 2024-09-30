@@ -1,15 +1,15 @@
 package cloud.igibgo.igibgobackend.service;
 
-import cloud.igibgo.igibgobackend.entity.*;
-import cloud.igibgo.igibgobackend.entity.Collection;
+import cloud.igibgo.igibgobackend.entity.FUser.Bookmark;
+import cloud.igibgo.igibgobackend.entity.FUser.Collection;
+import cloud.igibgo.igibgobackend.entity.FUser.FUser;
+import cloud.igibgo.igibgobackend.entity.Video.*;
 import cloud.igibgo.igibgobackend.mapper.*;
 import cloud.igibgo.igibgobackend.util.ConstantUtil;
 import cloud.igibgo.igibgobackend.util.UploadUtil;
 import jakarta.annotation.Resource;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;

@@ -1,7 +1,6 @@
 package cloud.igibgo.igibgobackend.entity.response;
 
-import cloud.igibgo.igibgobackend.entity.NoteBookmark;
-import jakarta.persistence.Entity;
+import cloud.igibgo.igibgobackend.entity.Note.NoteBookmark;
 import lombok.Data;
 
 import java.util.List;

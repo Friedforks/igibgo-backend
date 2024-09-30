@@ -1,7 +1,7 @@
 version: '3'
 services:
   igibgo-backend:
-    image: registry.cn-hangzhou.aliyuncs.com/friedforks/igibgo-backend:v2.1
+    image: registry.cn-hangzhou.aliyuncs.com/friedforks/igibgo-backend:v3
     container_name: igibgo-backend
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres_db:5432/igibgo?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai

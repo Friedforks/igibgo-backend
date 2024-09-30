@@ -1,6 +1,6 @@
 package cloud.igibgo.igibgobackend.mapper;
 
-import cloud.igibgo.igibgobackend.entity.NoteBookmark;
+import cloud.igibgo.igibgobackend.entity.Note.NoteBookmark;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.transaction.annotation.Propagation;

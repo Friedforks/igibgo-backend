@@ -1,5 +1,6 @@
-package cloud.igibgo.igibgobackend.entity;
+package cloud.igibgo.igibgobackend.entity.Post;
 
+import cloud.igibgo.igibgobackend.entity.FUser.FUser;
 import jakarta.persistence.*;
 
 @Entity

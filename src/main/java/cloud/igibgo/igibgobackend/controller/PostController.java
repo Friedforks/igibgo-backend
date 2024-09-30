@@ -1,8 +1,9 @@
 package cloud.igibgo.igibgobackend.controller;
 
-import cloud.igibgo.igibgobackend.entity.APIResponse;
-import cloud.igibgo.igibgobackend.entity.Post;
-import cloud.igibgo.igibgobackend.entity.ResponseCodes;
+import cloud.igibgo.igibgobackend.entity.Post.PostReply;
+import cloud.igibgo.igibgobackend.entity.response.APIResponse;
+import cloud.igibgo.igibgobackend.entity.Post.Post;
+import cloud.igibgo.igibgobackend.entity.response.ResponseCodes;
 import cloud.igibgo.igibgobackend.service.PostService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @RestController
@@ -149,16 +151,34 @@ public class PostController {
         }
     }
 
-    @GetMapping("/like")
-    APIResponse<Void> likePost(String postId) {
+    @PostMapping("/like/reply")
+    APIResponse<Void> likePostReply(Long postReplyId, String token) {
         try {
+            // 1. like the post
+            postService.likePostReply(postReplyId,token);
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
+        } catch (DataAccessException e) {
+            log.error("Database query error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
+        } catch (Exception e) {
+            log.error("Internal server error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
+        }
+    }
+
+    /**
+     * get the primary replies of a post
+     * @param postId post id
+     * @return list of primary replies
+     */
+    @GetMapping("/reply/primary")
+    APIResponse<List<PostReply>> getPrimaryReplies(String postId){
+        try{
             // Check 1: postId cannot be null
             if (postId == null) {
                 return new APIResponse<>(ResponseCodes.BAD_REQUEST, "postId cannot be null", null);
             }
-            // 1. like the post
-            postService.likePost(postId);
-            return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
+            return new APIResponse<>(ResponseCodes.SUCCESS,null,postService.getPrimaryReplies(postId));
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
@@ -168,12 +188,19 @@ public class PostController {
         }
     }
 
-    @GetMapping("/reply")
-    APIResponse<Void> replyPost(String postId, String replyContent, Long authorId) {
-        try {
-            // 1. reply the post
-            postService.replyPost(postId, replyContent, authorId);
-            return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
+    /**
+     * get the child replies of a post
+     * @param postReplyId post reply id
+     * @return list of child replies
+     */
+    @GetMapping("/reply/child")
+    APIResponse<List<PostReply>> getChildReplies(Long postReplyId){
+        try{
+            // Check 1: postReplyId cannot be null
+            if (postReplyId == null) {
+                return new APIResponse<>(ResponseCodes.BAD_REQUEST, "postReplyId cannot be null", null);
+            }
+            return new APIResponse<>(ResponseCodes.SUCCESS,null,postService.getChildReplies(postReplyId));
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
@@ -182,22 +209,31 @@ public class PostController {
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
+
+    @PostMapping("/reply/new")
+    APIResponse<Void> replyToPost(String postId, String replyContent, String token, Optional<Long> parentReplyId) {
+        try {
+            // Check 1: postId, replyContent, authorId cannot be null
+            if (postId == null || replyContent == null || token == null) {
+                return new APIResponse<>(ResponseCodes.BAD_REQUEST, "postId, replyContent, authorId cannot be null", null);
+            }
+            // 1. reply to the post
+            postService.replyToPost(postId, replyContent, token, parentReplyId);
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
+        } catch (DataAccessException e) {
+            log.error("Database query error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
+        } catch (IllegalArgumentException e) {
+            log.error("Illegal argument: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
+        } catch (Exception e) {
+            log.error("Internal server error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
+        }
+    }
+
 
     // forum author side
-    @GetMapping("/delete/reply")
-    APIResponse<Void> deleteReply(String replyId, Long authorId) {
-        try {
-            // 1. delete the reply
-            postService.deleteReply(replyId, authorId);
-            return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
-        } catch (DataAccessException e) {
-            log.error("Database query error: " + e.getMessage(), e);
-            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
-        } catch (Exception e) {
-            log.error("Internal server error: " + e.getMessage(), e);
-            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
-        }
-    }
 
     // forum author side
     @PostMapping("/upload")
@@ -222,6 +258,24 @@ public class PostController {
             // 1. delete the post
             postService.deletePost(postId, token);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
+        } catch (DataAccessException e) {
+            log.error("Database query error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
+        } catch (IllegalArgumentException e) {
+            log.error("Illegal argument: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
+        } catch (Exception e) {
+            log.error("Internal server error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
+        }
+    }
+
+    @DeleteMapping("/reply/delete")
+    APIResponse<Void> deleteReply(Long postReplyId,String token){
+        try{
+            // 1. delete the reply
+            postService.deleteReply(postReplyId,token);
+            return new APIResponse<>(ResponseCodes.SUCCESS,null,null);
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);

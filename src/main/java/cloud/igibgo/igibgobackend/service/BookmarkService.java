@@ -1,12 +1,10 @@
 package cloud.igibgo.igibgobackend.service;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
-import cloud.igibgo.igibgobackend.entity.Bookmark;
-import cloud.igibgo.igibgobackend.entity.FUser;
+import cloud.igibgo.igibgobackend.entity.FUser.Bookmark;
 import cloud.igibgo.igibgobackend.mapper.BookmarkMapper;
 import cloud.igibgo.igibgobackend.mapper.NoteBookmarkMapper;
 import cloud.igibgo.igibgobackend.mapper.VideoBookmarkMapper;

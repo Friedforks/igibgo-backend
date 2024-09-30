@@ -1,13 +1,12 @@
 package cloud.igibgo.igibgobackend.controller;
 
-import cloud.igibgo.igibgobackend.entity.APIResponse;
-import cloud.igibgo.igibgobackend.entity.Collection;
-import cloud.igibgo.igibgobackend.entity.ResponseCodes;
+import cloud.igibgo.igibgobackend.entity.response.APIResponse;
+import cloud.igibgo.igibgobackend.entity.FUser.Collection;
+import cloud.igibgo.igibgobackend.entity.response.ResponseCodes;
 import cloud.igibgo.igibgobackend.service.CollectionService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
-import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

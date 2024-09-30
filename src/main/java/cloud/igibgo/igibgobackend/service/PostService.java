@@ -1,6 +1,7 @@
 package cloud.igibgo.igibgobackend.service;
 
-import cloud.igibgo.igibgobackend.entity.*;
+import cloud.igibgo.igibgobackend.entity.FUser.FUser;
+import cloud.igibgo.igibgobackend.entity.Post.*;
 import cloud.igibgo.igibgobackend.mapper.*;
 import cloud.igibgo.igibgobackend.util.ConstantUtil;
 import cloud.igibgo.igibgobackend.util.UploadUtil;
@@ -92,18 +93,33 @@ public class PostService {
         return post;
     }
 
-    public void likePost(String postId) {
-        Optional<Post> postOptional = postMapper.findById(postId);
-        // Check 1: if the post exist
-        if (postOptional.isEmpty()) {
+    @Resource
+    private PostReplyMapper postReplyMapper;
+
+    @Resource
+    private PostReplyLikeMapper postReplyLikeMapper;
+
+    public void likePostReply(Long postReplyId, String token) {
+        // Check 1: validate token
+        FUser user = fUserService.checkLogin(token);
+        // Check 2: if the postReply exist
+        Optional<PostReply> postReplyOptional = postReplyMapper.findById(postReplyId);
+        if (postReplyOptional.isEmpty()) {
             throw new IllegalArgumentException("Post does not exist");
         }
-        // 1. get the post
-        Post post = postOptional.get();
-        // 2. increase the like count
-        post.likeCount++;
-        // 3. save the post to db
-        postMapper.save(post);
+        PostReply postReply = postReplyOptional.get();
+        // Check 3: if the user has liked the post
+        if (postReplyLikeMapper.existsByPostReplyPostReplyIdAndUserUserId(postReply.postReplyId, user.userId)) {
+            return;
+        }
+        // 1. save the like to post_reply_like table
+        PostReplyLike postReplyLike = new PostReplyLike();
+        postReplyLike.postReply = postReply;
+        postReplyLike.user = user;
+        postReplyLikeMapper.save(postReplyLike);
+
+        // 2. update the like count of post_reply
+        postReplyMapper.updateLikeCount(postReplyId);
     }
 
     @Resource
@@ -121,7 +137,7 @@ public class PostService {
         // 1. get user by email
         Optional<FUser> userOptional = fUserMapper.findByEmail(email);
         // Check 2: if the user exist
-        if(userOptional.isEmpty()){
+        if (userOptional.isEmpty()) {
             throw new IllegalArgumentException("User does not exist");
         }
         FUser user = userOptional.get();
@@ -148,57 +164,90 @@ public class PostService {
         postTagMapper.saveAll(postTags);
     }
 
-    public void deleteReply(String replyId, Long authorId) {
-        // Check 1: if the reply exist
-        Optional<Post> postOptional = postMapper.findById(replyId);
-        if (postOptional.isPresent()) {
-            // Check 2: if the author exist
-            Optional<FUser> userOptional = fUserMapper.findById(authorId);
-            if (userOptional.isPresent()) {
-                // 1. delete the reply
-                postMapper.deleteById(replyId);
-            } else {
-                throw new IllegalArgumentException("Author does not exist");
-            }
-        } else {
-            throw new IllegalArgumentException("Reply does not exist");
+    public void deleteReply(Long replyId, String token) {
+        // Check 1: validate token
+        FUser user = fUserService.checkLogin(token);
+        // Check 2: if the postReply exist
+        Optional<PostReply> postReplyOptional = postReplyMapper.findById(replyId);
+        if (postReplyOptional.isEmpty()) {
+            throw new IllegalArgumentException("Post reply does not exist");
+        }
+        // Check 3: if the user is the author of the reply
+        PostReply postReply = postReplyOptional.get();
+        if (!postReply.user.equals(user)) {
+            throw new IllegalArgumentException("You are not the author of the reply");
+        }
+        // 1. delete the reply
+        postReplyMapper.deleteById(replyId);
+        // 2. update the child reply count of parent reply
+        if (postReply.parentReply != null) {
+            postReplyMapper.updateParentReplyChildCount(postReply.parentReply.postReplyId);
         }
     }
 
     public List<Post> getPostsByAuthorId(Long authorId) {
-        return postMapper.findAllByAuthorId(authorId);
+        return postMapper.findAllByAuthorUserId(authorId);
     }
 
-    public Page<Post> getPostsByKeywords(String keyword,PageRequest pageRequest){
-        return postMapper.findAllByTitleContainsOrPostContentContains(keyword,pageRequest);
+    public Page<Post> getPostsByKeywords(String keyword, PageRequest pageRequest) {
+        return postMapper.findAllByTitleContainsOrPostContentContains(keyword, pageRequest);
+    }
+
+    public List<PostReply> getPrimaryReplies(String postId) {
+        // Check 1: if the post exist
+        Optional<Post> postOptional = postMapper.findById(postId);
+        if (postOptional.isEmpty()) {
+            throw new IllegalArgumentException("Post does not exist");
+        }
+        return postReplyMapper.findAllByPostPostIdAndParentReplyIsNull(postId);
+    }
+
+    public List<PostReply> getChildReplies(Long postReplyId) {
+        // Check 1: if the post reply exist
+        Optional<PostReply> postReplyOptional = postReplyMapper.findById(postReplyId);
+        if (postReplyOptional.isEmpty()) {
+            throw new IllegalArgumentException("Post reply does not exist");
+        }
+        return postReplyMapper.findAllByParentReplyPostReplyId(postReplyId);
     }
 
     @Resource
-    private PostReplyMapper postReplyMapper;
+    private FUserService fUserService;
 
-    public void replyPost(String postId, String replyContent, Long authorId) {
+    public void replyToPost(String postId, String replyContent, String token, Optional<Long> parentReplyIdOptional) {
         // Check 1: if the post exist
         Optional<Post> postOptional = postMapper.findById(postId);
-        if (postOptional.isPresent()) {
-            // Check 2: if the author exist
-            Optional<FUser> userOptional = fUserMapper.findById(authorId);
-            if (userOptional.isPresent()) {
-                // 1. Create a reply
-                PostReply postReply = new PostReply();
-                postReply.replyContent = replyContent;
-                postReply.author = userOptional.get();
-                postReply.post = postOptional.get();
-                // 2. Save reply
-                postReplyMapper.save(postReply);
-            } else {
-                throw new IllegalArgumentException("Author does not exist");
-            }
-        } else {
+        if (postOptional.isEmpty()) {
             throw new IllegalArgumentException("Post does not exist");
+        }
+        // Check 2: check token
+        FUser user = fUserService.checkLogin(token);
+        // 1. create a reply
+        PostReply postReply = new PostReply();
+        postReply.post = postOptional.get();
+        postReply.replyContent = replyContent;
+        postReply.user = user;
+        if (parentReplyIdOptional.isEmpty()) {
+            postReply.parentReply = null;
+            // 3. save the reply
+            postReplyMapper.save(postReply);
+        } else {
+            Long parentReplyId = parentReplyIdOptional.get();
+            // Check 3: if the parent reply exist
+            Optional<PostReply> parentReplyOptional = postReplyMapper.findById(parentReplyId);
+            if (parentReplyOptional.isEmpty()) {
+                throw new IllegalArgumentException("Parent reply does not exist");
+            }
+            // 2. set parent reply
+            postReply.parentReply = parentReplyOptional.get();
+            // 3. save the reply
+            postReplyMapper.save(postReply);
+            // 4. update the child reply count of parent reply
+            postReplyMapper.updateParentReplyChildCount(parentReplyId);
         }
     }
 
-    public void deletePost(String postId,String token) {
+    public void deletePost(String postId, String token) {
         // Check 1: if token is valid
         String email = redisTemplate.opsForValue().get(token);
         if (email == null || email.isEmpty()) {
@@ -207,18 +256,18 @@ public class PostService {
         // 1. get user by email
         Optional<FUser> userOptional = fUserMapper.findByEmail(email);
         // Check 2: if the user exist
-        if(userOptional.isEmpty()){
+        if (userOptional.isEmpty()) {
             throw new IllegalArgumentException("User does not exist");
         }
         FUser user = userOptional.get();
         // Check 3: if the post exist
         Optional<Post> postOptional = postMapper.findById(postId);
-        if(postOptional.isEmpty()){
+        if (postOptional.isEmpty()) {
             throw new IllegalArgumentException("Post does not exist");
         }
         Post post = postOptional.get();
         // Check 4: if the post author is the same as the user
-        if(!post.author.equals(user)){
+        if (!post.author.equals(user)) {
             throw new IllegalArgumentException("You are not the author of the post");
         }
         // 2. delete the post

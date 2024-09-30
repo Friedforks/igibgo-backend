@@ -1,7 +1,6 @@
 package cloud.igibgo.igibgobackend.mapper;
 
-import cloud.igibgo.igibgobackend.entity.NoteLike;
-import cloud.igibgo.igibgobackend.entity.VideoLike;
+import cloud.igibgo.igibgobackend.entity.Video.VideoLike;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 

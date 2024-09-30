@@ -1,5 +1,6 @@
-package cloud.igibgo.igibgobackend.entity;
+package cloud.igibgo.igibgobackend.entity.Post;
 
+import cloud.igibgo.igibgobackend.entity.FUser.FUser;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
@@ -27,7 +28,4 @@ public class Post {
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     public List<PostTag> tags = new ArrayList<>();
 
-    @JsonManagedReference
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    public List<PostReply> replies = new ArrayList<>();
 }

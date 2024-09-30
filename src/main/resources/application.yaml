@@ -1,76 +1,23 @@
-spring:
-  application:
-    name: igibgo
-  output:
-    ansi:
-      enabled: always
-  data:
-    redis:
-      host: igibgo.cloud
-      port: 5002
-      password: Hellochixiyu07!
-  datasource:
-    username: postgres
-    password: Hellochixiyu07!
-    #    url: jdbc:postgresql://igibgo.cloud:5000/igibgo?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
-    url: jdbc:postgresql://igibgo.cloud:5000/igibgo_dev?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
-    driver-class-name: org.postgresql.Driver
-  mail:
-    host: smtp.qq.com
-    port: 587
-    username: 2980364872@qq.com
-    password: tfuimtvvkamddeac
-    properties.mail.smtp:
-      auth: true
-      starttls:
-        enable: true
-        required: true
-  servlet:
-    multipart:
-      max-file-size: 5GB
-      max-request-size: 5GB
-
-  jpa:
-    open-in-view: true
-
-server:
-  port: 8000
-  tomcat:
-    max-swallow-size: -1
-
-cos:
-  secretId:
-    AKIDUrF3d1B6mDOIxMVPYUCerqa6QIyWzjFb
-  secretKey:
-    OdeQwDF0YrwlKs6MXWIrCMK7h2DDzWpu
-  bucketName:
-    #    igibgo-bucket-1303865496
-    myoss-1303865496
-  publicAccessUrl:
-    #        "https://igibgo-bucket-1303865496.cos.ap-shanghai.myqcloud.com"
-    "https://myoss-1303865496.cos.accelerate.myqcloud.com"
-
-util:
-  #  tmpDir: "/tmpdir"
-  tmpDir: "C:/Users/Chixiyu/Downloads/tmpdir"
-
-# deployment
 #spring:
 #  application:
 #    name: igibgo
+#  output:
+#    ansi:
+#      enabled: always
 #  data:
 #    redis:
-#      host: ${SPRING_REDIS_HOST:redis_db}
-#      port: ${SPRING_REDIS_PORT:6379}
+#      host: igibgo.cloud
+#      port: 5002
 #      password: Hellochixiyu07!
 #  datasource:
 #    username: postgres
 #    password: Hellochixiyu07!
-#    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres_db:5000/igibgo_dev?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai}
+#    #    url: jdbc:postgresql://igibgo.cloud:5000/igibgo?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+#    url: jdbc:postgresql://igibgo.cloud:5000/igibgo_dev?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+#    driver-class-name: org.postgresql.Driver
 #  mail:
 #    host: smtp.qq.com
 #    port: 587
-#
 #    username: 2980364872@qq.com
 #    password: tfuimtvvkamddeac
 #    properties.mail.smtp:
@@ -87,20 +34,73 @@ util:
 #    open-in-view: true
 #
 #server:
-#  port: 8001
+#  port: 8000
 #  tomcat:
 #    max-swallow-size: -1
 #
 #cos:
-#  secretId: AKIDUrF3d1B6mDOIxMVPYUCerqa6QIyWzjFb
-#  secretKey: OdeQwDF0YrwlKs6MXWIrCMK7h2DDzWpu
+#  secretId:
+#    AKIDUrF3d1B6mDOIxMVPYUCerqa6QIyWzjFb
+#  secretKey:
+#    OdeQwDF0YrwlKs6MXWIrCMK7h2DDzWpu
 #  bucketName:
 #    #    igibgo-bucket-1303865496
 #    myoss-1303865496
 #  publicAccessUrl:
-#    #    "https://igibgo-bucket-1303865496.cos.ap-shanghai.myqcloud.com"
+#    #        "https://igibgo-bucket-1303865496.cos.ap-shanghai.myqcloud.com"
 #    "https://myoss-1303865496.cos.accelerate.myqcloud.com"
 #
 #util:
-#  tmpDir: "/tmpdir"
-##  tmpDir: "C:/Users/Chixiyu/Downloads/tmpdir"
+#  #  tmpDir: "/tmpdir"
+#  tmpDir: "C:/Users/Chixiyu/Downloads/tmpdir"
+
+# deployment
+spring:
+  application:
+    name: igibgo
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:redis_db}
+      port: ${SPRING_REDIS_PORT:6379}
+      password: Hellochixiyu07!
+  datasource:
+    username: postgres
+    password: Hellochixiyu07!
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres_db:5000/igibgo_dev?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai}
+  mail:
+    host: smtp.qq.com
+    port: 587
+
+    username: 2980364872@qq.com
+    password: tfuimtvvkamddeac
+    properties.mail.smtp:
+      auth: true
+      starttls:
+        enable: true
+        required: true
+  servlet:
+    multipart:
+      max-file-size: 5GB
+      max-request-size: 5GB
+
+  jpa:
+    open-in-view: true
+
+server:
+  port: 8001
+  tomcat:
+    max-swallow-size: -1
+
+cos:
+  secretId: AKIDUrF3d1B6mDOIxMVPYUCerqa6QIyWzjFb
+  secretKey: OdeQwDF0YrwlKs6MXWIrCMK7h2DDzWpu
+  bucketName:
+    #    igibgo-bucket-1303865496
+    myoss-1303865496
+  publicAccessUrl:
+    #    "https://igibgo-bucket-1303865496.cos.ap-shanghai.myqcloud.com"
+    "https://myoss-1303865496.cos.accelerate.myqcloud.com"
+
+util:
+  tmpDir: "/tmpdir"
+#  tmpDir: "C:/Users/Chixiyu/Downloads/tmpdir"

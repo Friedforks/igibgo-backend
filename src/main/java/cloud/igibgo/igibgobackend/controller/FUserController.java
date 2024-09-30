@@ -1,11 +1,12 @@
 package cloud.igibgo.igibgobackend.controller;
 
-import cloud.igibgo.igibgobackend.entity.*;
-import cloud.igibgo.igibgobackend.mapper.NoteMapper;
+import cloud.igibgo.igibgobackend.entity.FUser.Bookmark;
+import cloud.igibgo.igibgobackend.entity.FUser.FUser;
+import cloud.igibgo.igibgobackend.entity.response.APIResponse;
+import cloud.igibgo.igibgobackend.entity.response.ResponseCodes;
 import cloud.igibgo.igibgobackend.service.FUserService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.aspectj.weaver.ast.Not;
 import org.springframework.dao.DataAccessException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,9 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 @Slf4j
 @RestController

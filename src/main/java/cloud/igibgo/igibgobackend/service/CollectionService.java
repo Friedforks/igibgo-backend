@@ -1,7 +1,7 @@
 package cloud.igibgo.igibgobackend.service;
 
-import cloud.igibgo.igibgobackend.entity.Collection;
-import cloud.igibgo.igibgobackend.entity.FUser;
+import cloud.igibgo.igibgobackend.entity.FUser.Collection;
+import cloud.igibgo.igibgobackend.entity.FUser.FUser;
 import cloud.igibgo.igibgobackend.mapper.CollectionMapper;
 import cloud.igibgo.igibgobackend.mapper.FUserMapper;
 import jakarta.annotation.Resource;

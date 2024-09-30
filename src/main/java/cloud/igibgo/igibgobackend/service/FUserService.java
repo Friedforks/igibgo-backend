@@ -1,13 +1,13 @@
 package cloud.igibgo.igibgobackend.service;
 
-import cloud.igibgo.igibgobackend.entity.*;
+import cloud.igibgo.igibgobackend.entity.FUser.Bookmark;
+import cloud.igibgo.igibgobackend.entity.FUser.FUser;
+import cloud.igibgo.igibgobackend.entity.response.APIResponse;
+import cloud.igibgo.igibgobackend.entity.response.ResponseCodes;
 import cloud.igibgo.igibgobackend.mapper.*;
 import cloud.igibgo.igibgobackend.util.*;
-import com.squareup.okhttp.Call;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.tomcat.util.bcel.Const;
-import org.joda.time.IllegalFieldValueException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;

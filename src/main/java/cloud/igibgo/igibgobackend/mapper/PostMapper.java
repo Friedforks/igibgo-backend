@@ -1,6 +1,6 @@
 package cloud.igibgo.igibgobackend.mapper;
 
-import cloud.igibgo.igibgobackend.entity.Post;
+import cloud.igibgo.igibgobackend.entity.Post.Post;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,8 +14,7 @@ public interface PostMapper extends JpaRepository<Post, String> {
     @Query("select p from Post p join p.tags pt where pt.tagText=:tag")
     public List<Post> findAllByTag(String tag);
 
-    @Query("select p from Post p join p.author pt where pt.userId=:authorId")
-    List<Post> findAllByAuthorId(Long authorId);
+    List<Post> findAllByAuthorUserId(Long authorId);
 
 
     @Query(value = "SELECT p.* FROM post p WHERE " +

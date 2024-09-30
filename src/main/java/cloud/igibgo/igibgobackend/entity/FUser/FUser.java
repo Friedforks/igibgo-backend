@@ -1,4 +1,4 @@
-package cloud.igibgo.igibgobackend.entity;
+package cloud.igibgo.igibgobackend.entity.FUser;
 
 import jakarta.persistence.*;
 

@@ -4,9 +4,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import cloud.igibgo.igibgobackend.entity.APIResponse;
-import cloud.igibgo.igibgobackend.entity.Bookmark;
-import cloud.igibgo.igibgobackend.entity.ResponseCodes;
+import cloud.igibgo.igibgobackend.entity.response.APIResponse;
+import cloud.igibgo.igibgobackend.entity.FUser.Bookmark;
+import cloud.igibgo.igibgobackend.entity.response.ResponseCodes;
 import cloud.igibgo.igibgobackend.service.BookmarkService;
 import jakarta.annotation.Resource;
 

@@ -1,24 +1,25 @@
-package cloud.igibgo.igibgobackend.entity;
+package cloud.igibgo.igibgobackend.entity.Note;
 
+import cloud.igibgo.igibgobackend.entity.FUser.FUser;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 
 @Entity
-@Table(name = "video_reply")
-public class VideoReply {
+@Table(name = "note_reply")
+public class NoteReply {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    public Long videoReplyId;
+    public Long noteReplyId;
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "video_id")
+    @JoinColumn(name = "note_id")
     @JsonBackReference
-    public Video video;
-    public String replyContent;
-    public LocalDateTime replyDate = LocalDateTime.now();
+    public Note note;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "author")
     public FUser author;
+    public String replyContent;
+    public LocalDateTime replyDate = LocalDateTime.now();
 }

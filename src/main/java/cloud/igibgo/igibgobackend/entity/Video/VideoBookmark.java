@@ -1,5 +1,6 @@
-package cloud.igibgo.igibgobackend.entity;
+package cloud.igibgo.igibgobackend.entity.Video;
 
+import cloud.igibgo.igibgobackend.entity.FUser.Bookmark;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 

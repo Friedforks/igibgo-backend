@@ -1,7 +1,9 @@
 package cloud.igibgo.igibgobackend.service;
 
-import cloud.igibgo.igibgobackend.entity.*;
-import cloud.igibgo.igibgobackend.entity.Collection;
+import cloud.igibgo.igibgobackend.entity.FUser.Bookmark;
+import cloud.igibgo.igibgobackend.entity.FUser.Collection;
+import cloud.igibgo.igibgobackend.entity.FUser.FUser;
+import cloud.igibgo.igibgobackend.entity.Note.*;
 import cloud.igibgo.igibgobackend.mapper.*;
 import cloud.igibgo.igibgobackend.util.ConstantUtil;
 import cloud.igibgo.igibgobackend.util.UploadUtil;

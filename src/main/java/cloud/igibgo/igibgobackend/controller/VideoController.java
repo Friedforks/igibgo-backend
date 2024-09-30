@@ -1,6 +1,9 @@
 package cloud.igibgo.igibgobackend.controller;
 
-import cloud.igibgo.igibgobackend.entity.*;
+import cloud.igibgo.igibgobackend.entity.Video.Video;
+import cloud.igibgo.igibgobackend.entity.Video.VideoBookmark;
+import cloud.igibgo.igibgobackend.entity.response.APIResponse;
+import cloud.igibgo.igibgobackend.entity.response.ResponseCodes;
 import cloud.igibgo.igibgobackend.service.VideoService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;

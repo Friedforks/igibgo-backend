@@ -1,6 +1,10 @@
 package cloud.igibgo.igibgobackend.controller;
 
-import cloud.igibgo.igibgobackend.entity.*;
+import cloud.igibgo.igibgobackend.entity.Note.Note;
+import cloud.igibgo.igibgobackend.entity.Note.NoteBookmark;
+import cloud.igibgo.igibgobackend.entity.Note.NoteReply;
+import cloud.igibgo.igibgobackend.entity.response.APIResponse;
+import cloud.igibgo.igibgobackend.entity.response.ResponseCodes;
 import cloud.igibgo.igibgobackend.mapper.NoteMapper;
 import cloud.igibgo.igibgobackend.service.NoteService;
 import jakarta.annotation.Resource;

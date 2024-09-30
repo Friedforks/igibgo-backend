@@ -1,19 +1,20 @@
-package cloud.igibgo.igibgobackend.entity;
+package cloud.igibgo.igibgobackend.entity.Video;
 
+import cloud.igibgo.igibgobackend.entity.FUser.FUser;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name="note_view")
-public class NoteView {
+@Table(name = "video_like")
+public class VideoLike {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    public Long note_view_id;
+    public Long videoLikeId;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "note_id")
+    @JoinColumn(name = "video_id")
     @JsonBackReference
-    public Note note;
+    public Video video;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id")

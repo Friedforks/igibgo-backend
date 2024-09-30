@@ -1,6 +1,6 @@
 package cloud.igibgo.igibgobackend.mapper;
 
-import cloud.igibgo.igibgobackend.entity.Note;
+import cloud.igibgo.igibgobackend.entity.Note.Note;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
