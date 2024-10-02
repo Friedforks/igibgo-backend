@@ -2,6 +2,7 @@ package cloud.igibgo.igibgobackend.service;
 
 import cloud.igibgo.igibgobackend.entity.FUser.FUser;
 import cloud.igibgo.igibgobackend.entity.Post.*;
+import cloud.igibgo.igibgobackend.entity.response.APIResponse;
 import cloud.igibgo.igibgobackend.mapper.*;
 import cloud.igibgo.igibgobackend.util.ConstantUtil;
 import cloud.igibgo.igibgobackend.util.UploadUtil;
@@ -245,6 +246,37 @@ public class PostService {
             // 4. update the child reply count of parent reply
             postReplyMapper.updateParentReplyChildCount(parentReplyId);
         }
+    }
+
+    public void editPost(String postId, String token, String tags, String title, String postContent) {
+        // Check 1: check user token
+        FUser user = fUserService.checkLogin(token);
+        // Check 2: post exists
+        Optional<Post> postOptional=postMapper.findById(postId);
+        if (postOptional.isEmpty()) {
+            throw new IllegalArgumentException("Post does not exist");
+        }
+        // Check 3: user if the to be edited post's author
+        Post post = postOptional.get();
+        if (!post.author.equals(user)) {
+            throw new IllegalArgumentException("You are not the author of the post");
+        }
+        // 1. update the post
+        post.title = title;
+        post.postContent = postContent;
+        postMapper.save(post);
+        // 2. delete all tags of the post
+        postTagMapper.deleteAllByPostPostId(postId);
+        // 3. save tags
+        String[] tagList = tags.split(",");
+        List<PostTag> postTags = new ArrayList<>();
+        for (String tag : tagList) {
+            PostTag postTag = new PostTag();
+            postTag.post = post;
+            postTag.tagText = tag;
+            postTags.add(postTag);
+        }
+        postTagMapper.saveAll(postTags);
     }
 
     public void deletePost(String postId, String token) {

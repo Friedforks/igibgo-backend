@@ -1,4 +1,4 @@
-$version="v3"
+$version="v3.1"
 
 docker build -t igibgo-backend:$version .
 docker tag igibgo-backend:$version registry.cn-hangzhou.aliyuncs.com/friedforks/igibgo-backend:$version

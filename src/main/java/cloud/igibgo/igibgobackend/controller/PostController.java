@@ -251,6 +251,23 @@ public class PostController {
         }
     }
 
+    @PostMapping("/edit")
+    APIResponse<Void> editPost(String postId,String token, String tags, String title, String postContent){
+        try{
+            postService.editPost(postId,token,tags,title,postContent);
+            return new APIResponse<>(ResponseCodes.SUCCESS,null,null);
+        } catch (DataAccessException e) {
+            log.error("Database query error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
+        } catch (IllegalArgumentException e) {
+            log.error("Illegal argument: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.BAD_REQUEST, e.getMessage(), null);
+        } catch (Exception e) {
+            log.error("Internal server error: " + e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
+        }
+    }
+
     // delete
     @DeleteMapping("/delete")
     APIResponse<Void> deletePost(String postId, String token) {
