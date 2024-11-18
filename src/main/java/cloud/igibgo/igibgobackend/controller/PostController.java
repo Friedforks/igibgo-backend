@@ -101,14 +101,14 @@ public class PostController {
     }
 
     @GetMapping("/get/postId")
-    APIResponse<Post> getPostById(String postId) {
+    APIResponse<Post> getPostById(String postId,String token) {
         try {
             // Check 1: postId cannot be null
             if (postId == null) {
                 return new APIResponse<>(ResponseCodes.BAD_REQUEST, "postId cannot be null", null);
             }
             // 1. get post with replies and tags
-            Post post = postService.getPostByPostId(postId);
+            Post post = postService.getPostByPostId(postId,token);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, post);
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);

@@ -79,18 +79,36 @@ public class PostService {
         return posts.stream().toList();
     }
 
-    public Post getPostByPostId(String postId) {
+    @Resource
+    private PostViewMapper postViewMapper;
+
+    private void updateViewCount(String postId) {
+        Long viewCount=postViewMapper.countPostViewsByPostPostId(postId);
+        postMapper.updateViewCountByPostId(postId,viewCount);
+    }
+
+    public Post getPostByPostId(String postId, String token) {
         Optional<Post> postOptional = postMapper.findById(postId);
         // Check 1: if the post exist
         if (postOptional.isEmpty()) {
             throw new IllegalArgumentException("Post does not exist");
         }
-        // 1. get the post
+        // 1. get user
+        FUser user = fUserService.checkLogin(token);
+        // 2. get the post
         Post post = postOptional.get();
-        // 2. increase the view count
-        post.viewCount++;
-        // 3. save the post to db
-        postMapper.save(post);
+        // Check 2: if user has viewed the post
+        boolean hasViewed = postViewMapper.existsByPostPostIdAndUserUserId(postId, user.userId);
+        if (!hasViewed) {
+            // 1. save the view to post_view table
+            PostView postView = new PostView();
+            postView.post = post;
+            postView.user = user;
+            // 2. save the post to db
+            postViewMapper.save(postView);
+            // 3. update the view count of post
+            updateViewCount(postId);
+        }
         return post;
     }
 
@@ -252,7 +270,7 @@ public class PostService {
         // Check 1: check user token
         FUser user = fUserService.checkLogin(token);
         // Check 2: post exists
-        Optional<Post> postOptional=postMapper.findById(postId);
+        Optional<Post> postOptional = postMapper.findById(postId);
         if (postOptional.isEmpty()) {
             throw new IllegalArgumentException("Post does not exist");
         }

@@ -27,5 +27,4 @@ public class Post {
     @JsonManagedReference
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     public List<PostTag> tags = new ArrayList<>();
-
 }
