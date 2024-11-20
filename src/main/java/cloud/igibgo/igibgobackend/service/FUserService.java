@@ -241,19 +241,22 @@ public class FUserService {
     @Resource
     private VideoLikeMapper videoLikeMapper;
 
+
     public APIResponse<Long> totalLikes(Long authorId) throws ExecutionException, InterruptedException {
         // check 1: if user exists
         if (fUserMapper.findById(authorId).isEmpty()) {
             return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null);
         }
-        ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-        // 1.1 total note like
-        Callable<Long> noteLikeCount = () -> noteLikeMapper.countByAuthorId(authorId);
-        // 1.2 total video like
-        Callable<Long> videoLikeCount = () -> videoLikeMapper.countByAuthorId(authorId);
-        // 2. add total like
-        Long totalLike = executor.submit(noteLikeCount).get() + executor.submit(videoLikeCount).get();
-        return new APIResponse<>(ResponseCodes.SUCCESS, null, totalLike);
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            // 1.1 total note like
+            Future<Long> noteLikeCount = executor.submit(() -> noteLikeMapper.countByAuthorId(authorId));
+            // 1.2 total video like
+            Future<Long> videoLikeCount = executor.submit(() -> videoLikeMapper.countByAuthorId(authorId));
+
+            // Wait for all tasks to complete
+            Long totalLike = noteLikeCount.get() + videoLikeCount.get();
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, totalLike);
+        }
     }
 
     @Resource
@@ -262,40 +265,49 @@ public class FUserService {
     @Resource
     private VideoBookmarkMapper videoBookmarkMapper;
 
-    // TODO: add saves from video
     public APIResponse<Long> totalSaves(Long userId) throws ExecutionException, InterruptedException {
         // check 1: if user exists
         if (fUserMapper.findById(userId).isEmpty()) {
             return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null);
         }
-        ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-        // 1.1 total note save
-        Callable<Long> noteSaveCount = () -> noteBookmarkMapper.countByAuthorId(userId);
-        // 1.2 total video save
-        Callable<Long> videoSaveCount = () -> videoBookmarkMapper.countByAuthorId(userId);
-        // 2. add total save
-        Long saveCount = executor.submit(noteSaveCount).get() + executor.submit(videoSaveCount).get();
-        return new APIResponse<>(ResponseCodes.SUCCESS, null, saveCount);
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            // 1.1 total note save
+            Future<Long> noteSaveCount = executor.submit(() -> noteBookmarkMapper.countByAuthorId(userId));
+            // 1.2 total video save
+            Future<Long> videoSaveCount = executor.submit(() -> videoBookmarkMapper.countByAuthorId(userId));
+
+            // Wait for all tasks to complete
+            Long saveCount = noteSaveCount.get() + videoSaveCount.get();
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, saveCount);
+        }
     }
 
     @Resource
     private NoteViewMapper noteViewMapper;
 
     @Resource
-    private VideoViewMapepr videoViewMapepr;
+    private VideoViewMapepr videoViewMapper;
+
+    @Resource
+    private PostViewMapper postViewMapper;
 
     public APIResponse<Long> totalViews(Long userId) throws ExecutionException, InterruptedException {
         // check 1: if user exists
         if (fUserMapper.findById(userId).isEmpty()) {
             return new APIResponse<>(ResponseCodes.NOT_FOUND, "User not found", null);
         }
-        ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-        // 1.1 total note view
-        Callable<Long> noteViewCount = () -> noteViewMapper.countByAuthorId(userId);
-        // 1.2 total video view
-        Callable<Long> videoViewCount = () -> videoViewMapepr.countByAuthorId(userId);
-        Long totalView = executor.submit(noteViewCount).get() + executor.submit(videoViewCount).get();
-        return new APIResponse<>(ResponseCodes.SUCCESS, null, totalView);
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            // 1.1 total note view
+            Future<Long> noteViewCount = executor.submit(() -> noteViewMapper.countByAuthorId(userId));
+            // 1.2 total video view
+            Future<Long> videoViewCount = executor.submit(() -> videoViewMapper.countByAuthorId(userId));
+            // 1.3 total forum view
+            Future<Long> postViewCount = executor.submit(() -> postViewMapper.countByAuthorId(userId));
+
+            // Wait for all tasks to complete
+            Long totalView = noteViewCount.get() + videoViewCount.get() + postViewCount.get();
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, totalView);
+        }
     }
 
     public APIResponse<Void> updatePassword(String token, String currentPassword, String newPassword) {
