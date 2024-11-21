@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -239,8 +240,10 @@ public class PostController {
     @PostMapping("/upload")
     APIResponse<Void> uploadPost(String postContent, String tags, String token, String title) {
         try {
-            // 1. upload the post
-            postService.uploadPost(postContent, tags, token, title);
+            List<String> tagList= Arrays.stream(tags.split(","))
+                    .map(String::trim)
+                    .toList();
+            postService.uploadPost(postContent, tagList, token, title);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
         } catch (DataAccessException e) {
             log.error("Database query error: " + e.getMessage(), e);

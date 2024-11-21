@@ -246,7 +246,9 @@ public class NoteController {
     @PostMapping("/upload")
     APIResponse<Void> uploadNote(MultipartFile note, Long authorId, Long collectionId, String title, String tags) {
         try {
-            List<String> tagList = List.of(tags.split(","));
+            List<String> tagList = Arrays.stream(tags.split(","))
+                    .map(String::trim)
+                    .toList();
             noteService.uploadNote(note, authorId, collectionId, title, tagList);
             return new APIResponse<>(ResponseCodes.SUCCESS, "Note uploaded", null);
         } catch (DataAccessException e) {
@@ -354,8 +356,8 @@ public class NoteController {
      */
     @PostMapping("/bookmark/new")
     APIResponse<Boolean> bookmarkNote(String noteId,
-            Long userId,
-            String folder) {
+                                      Long userId,
+                                      String folder) {
         try {
             List<String> folderList = List.of(folder.split(","));
             if (folder.isEmpty()) {

@@ -268,7 +268,9 @@ public class VideoController {
                                     String tags) {
         try {
             // 1. upload video
-            List<String> tagList = Arrays.asList(tags.split(","));
+            List<String> tagList = Arrays.stream(tags.split(","))
+                    .map(String::trim)
+                    .toList();
             videoService.uploadVideo(video, videoCover, authorId, collectionId, title, tagList);
             return new APIResponse<>(ResponseCodes.SUCCESS, null, null);
         } catch (DataAccessException e) {

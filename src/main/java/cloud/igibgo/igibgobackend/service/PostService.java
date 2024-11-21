@@ -147,7 +147,7 @@ public class PostService {
     @Resource
     private PostTagMapper postTagMapper;
 
-    public void uploadPost(String postContent, String tags, String token, String title) {
+    public void uploadPost(String postContent, List<String> tagList, String token, String title) {
         // Check 1: if token is valid
         String email = redisTemplate.opsForValue().get(token);
         if (email == null || email.isEmpty()) {
@@ -170,8 +170,6 @@ public class PostService {
         post.title = title;
         // 2. Save post
         postMapper.save(post);
-        // 3. Split tags into list
-        String[] tagList = tags.split(",");
         // 3. Save tags
         List<PostTag> postTags = new ArrayList<>();
         for (String tag : tagList) {
