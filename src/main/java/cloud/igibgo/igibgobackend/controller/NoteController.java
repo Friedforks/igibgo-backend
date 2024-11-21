@@ -7,6 +7,7 @@ import cloud.igibgo.igibgobackend.entity.response.APIResponse;
 import cloud.igibgo.igibgobackend.entity.response.ResponseCodes;
 import cloud.igibgo.igibgobackend.mapper.NoteMapper;
 import cloud.igibgo.igibgobackend.service.NoteService;
+import cloud.igibgo.igibgobackend.util.StringUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
@@ -95,7 +96,7 @@ public class NoteController {
         try {
             List<String> tagList = Arrays.asList(tags.split(","));
             Sort.Direction direction = ascending ? Sort.Direction.ASC : Sort.Direction.DESC;
-            PageRequest pageRequest = PageRequest.of(page, size, Sort.by(direction, orderBy));
+            PageRequest pageRequest = PageRequest.of(page, size, Sort.by(direction, StringUtil.toSnakeCase(orderBy)));
             return new APIResponse<>(ResponseCodes.SUCCESS, null, noteService.getNotesByTags(tagList, pageRequest));
         } catch (DataAccessException e) {
             log.error("Database query error: {}", e.getMessage(), e);

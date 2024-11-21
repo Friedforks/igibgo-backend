@@ -43,7 +43,9 @@ public class NoteService {
      * @return set of notes that have at least one of the tags
      */
     public Page<Note> getNotesByTags(List<String> tags, PageRequest pageRequest) {
-        Page<Note> notes = noteMapper.findAllByTag(tags, pageRequest);
+        // convert the tags to a string for postgresql query
+        String formattedTags= "{" + String.join(",", tags) + "}";
+        Page<Note> notes = noteMapper.findAllByTag(formattedTags, pageRequest);
         // remove duplicates
         Set<Note> noteSet = new HashSet<>(notes.getContent());
         return new PageImpl<>(new ArrayList<>(noteSet), notes.getPageable(), notes.getTotalElements());

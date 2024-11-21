@@ -14,8 +14,27 @@ import java.util.List;
 @Repository
 public interface NoteMapper extends JpaRepository<Note, String> {
     // find all notes with at least one of the tags
-    @Query("select distinct n from Note n join n.tags nt where nt.tagText in :tag")
-    public Page<Note> findAllByTag(List<String> tag, Pageable pageable);
+//    @Query("select distinct n from Note n join n.tags nt where nt.tagText in :tag")
+    @Query(value = """
+            SELECT DISTINCT n.* FROM note n
+            JOIN note_tag nt ON n.note_id = nt.note_id
+            JOIN note_tag t ON nt.note_tag_id = t.note_tag_id
+            WHERE EXISTS (
+                SELECT 1 FROM unnest(cast(:tag as text[])) search_tag
+                WHERE similarity(t.tag_text, search_tag) > 0.5
+            )
+            """,
+            countQuery = """
+                    SELECT COUNT(DISTINCT n.note_id) FROM note n
+                    JOIN note_tag nt ON n.note_id = nt.note_id
+                    JOIN note_tag t ON nt.note_tag_id = t.note_tag_id
+                    WHERE EXISTS (
+                        SELECT 1 FROM unnest(cast(:tag as text[])) search_tag
+                        WHERE similarity(t.tag_text, search_tag) > 0.3
+                    )
+                    """,
+            nativeQuery = true)
+    public Page<Note> findAllByTag(String tag, Pageable pageable);
 
     // @Query("select distinct n from Note n where n.title like %:title%")
     // public Page<Note> findAllByTitle(String title, Pageable pageable);
@@ -25,7 +44,7 @@ public interface NoteMapper extends JpaRepository<Note, String> {
             "order by ts_rank(n.title_tsv, websearch_to_tsquery('chinese', :title)) desc",// rank by relativity
             countQuery = "SELECT COUNT(*) FROM note n WHERE n.title_tsv @@ websearch_to_tsquery('chinese', :title)",
             nativeQuery = true)
-    public Page<Note> findAllByTitle(String title,Pageable pageable);
+    public Page<Note> findAllByTitle(String title, Pageable pageable);
 
     @Query("select nt.tagText from NoteTag nt")
     public List<String> findAllTags();
