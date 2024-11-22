@@ -35,4 +35,7 @@ public interface PostMapper extends JpaRepository<Post, String> {
     @Modifying
     @Query("update Post p set p.viewCount= :viewCount where p.postId=:postId")
     public void updateViewCountByPostId(String postId, Long viewCount);
+
+    @Query("select pt.tagText from PostTag pt")
+    public List<String> findAllTags();
 }

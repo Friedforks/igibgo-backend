@@ -67,6 +67,14 @@ public class PostService {
         return image_url;
     }
 
+
+    public Set<String> getAllTags() {
+        // fetch all distinct tag content from db
+        List<String> tags = postMapper.findAllTags();
+        // convert to set to remove duplicate:
+        return new HashSet<>(tags);
+    }
+
     public Page<Post> getPostsInOrder(PageRequest pageRequest) {
         return postMapper.findAll(pageRequest);
     }

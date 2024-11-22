@@ -29,7 +29,7 @@ public class VideoService {
     @Resource
     private VideoMapper videoMapper;
     @Resource
-    private RedisTemplate<String,String> redisTemplate;
+    private RedisTemplate<String, String> redisTemplate;
 
     public Page<Video> getVideosInOrder(PageRequest pageRequest) {
         return videoMapper.findAll(pageRequest);
@@ -65,11 +65,11 @@ public class VideoService {
     private UploadUtil uploadUtil;
 
     public void uploadVideo(MultipartFile video,
-            MultipartFile videoCover,
-            Long authorId,
-            Long collectionId,
-            String title,
-            List<String> tags) throws IOException, ExecutionException, InterruptedException {
+                            MultipartFile videoCover,
+                            Long authorId,
+                            Long collectionId,
+                            String title,
+                            List<String> tags) throws IOException, ExecutionException, InterruptedException {
         Optional<FUser> author = fUserMapper.findById(authorId);
         // Check 1: if the author exist
         if (author.isPresent()) {
@@ -311,6 +311,12 @@ public class VideoService {
         }
     }
 
+    public Set<String> getAllTags() {
+        // get all video tags
+        List<String> tags = videoTagMapper.findAllTags();
+        return new HashSet<>(tags);
+    }
+
     @Resource
     private VideoBookmarkMapper videoBookmarkMapper;
 
@@ -343,7 +349,7 @@ public class VideoService {
         videoBookmarkMapper.deleteByVideoVideoIdAndBookmarkUserUserId(videoId, userId);
         // 2. delete all bookmarks with no note bookmarks
         entityManager.clear();// IMPORTANT: clear the entity manager to avoid stale data, TOOK ME SO LONG TO
-                              // FIX THIS PROBLEM!
+        // FIX THIS PROBLEM!
         List<Bookmark> allBookmarks = bookmarkMapper.findAllByUserUserId(userId);
         for (Bookmark bookmark : allBookmarks) {
             if (bookmark.noteBookmarks.isEmpty()) {
@@ -387,7 +393,7 @@ public class VideoService {
     }
 
 
-    public void deleteVideo(String token, String videoId){
+    public void deleteVideo(String token, String videoId) {
         // Check 1: if the video exist
         Optional<Video> videoOptional = videoMapper.findById(videoId);
         if (videoOptional.isEmpty()) {
@@ -395,26 +401,27 @@ public class VideoService {
         }
         Video video = videoOptional.get();
         // Check 2: if the token exist
-        String userEmail=redisTemplate.opsForValue().get(token);
-        if(userEmail==null){
+        String userEmail = redisTemplate.opsForValue().get(token);
+        if (userEmail == null) {
             throw new IllegalArgumentException("Token not found");
         }
         // Check 3: if the user is the author of the video
-        if(!video.author.email.equals(userEmail)){
+        if (!video.author.email.equals(userEmail)) {
             throw new IllegalArgumentException("You are not the author of the video");
         }
 
         // 1. deletion in parallel with virtual thread
         ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
         // 1.1 delete the video from COS
-        String videoPath= uploadUtil.convertPublicAccessUrlToKey("video/",video.videoUrl);
+        String videoPath = uploadUtil.convertPublicAccessUrlToKey("video/", video.videoUrl);
         // 1.2 delete the video cover from COS
-        String videoCoverPath= uploadUtil.convertPublicAccessUrlToKey("video-cover/",video.videoCoverUrl);
-        executor.submit(()->{
+        String videoCoverPath = uploadUtil.convertPublicAccessUrlToKey("video-cover/", video.videoCoverUrl);
+        executor.submit(() -> {
             uploadUtil.deleteObject(videoPath);
             uploadUtil.deleteObject(videoCoverPath);
         });
         // 1.3 delete the video from db
         videoMapper.deleteById(videoId);
     }
+
 }

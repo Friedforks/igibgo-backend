@@ -2,6 +2,7 @@ package cloud.igibgo.igibgobackend.controller;
 
 import cloud.igibgo.igibgobackend.entity.Video.Video;
 import cloud.igibgo.igibgobackend.entity.Video.VideoBookmark;
+import cloud.igibgo.igibgobackend.entity.Video.VideoTag;
 import cloud.igibgo.igibgobackend.entity.response.APIResponse;
 import cloud.igibgo.igibgobackend.entity.response.ResponseCodes;
 import cloud.igibgo.igibgobackend.service.VideoService;
@@ -17,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.web.bind.annotation.GetMapping;
 
@@ -66,6 +68,23 @@ public class VideoController {
             return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
         }
     }
+
+    /**
+     * @return all the tags in a list of string
+     */
+    @GetMapping("/get/allTags")
+    APIResponse<Set<String>> getAllTags() {
+        try {
+            return new APIResponse<>(ResponseCodes.SUCCESS, null, videoService.getAllTags());
+        } catch (DataAccessException e) {
+            log.error("Database query error: {}", e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Database query error", null);
+        } catch (Exception e) {
+            log.error("Unhandled error: {}", e.getMessage(), e);
+            return new APIResponse<>(ResponseCodes.INTERNAL_SERVER_ERROR, "Internal server error", null);
+        }
+    }
+
 
     /**
      * get all videos by user id, used in user page

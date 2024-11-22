@@ -21,7 +21,7 @@ public interface NoteMapper extends JpaRepository<Note, String> {
             JOIN note_tag t ON nt.note_tag_id = t.note_tag_id
             WHERE EXISTS (
                 SELECT 1 FROM unnest(cast(:tag as text[])) search_tag
-                WHERE similarity(t.tag_text, search_tag) > 0.5
+                WHERE similarity(t.tag_text, search_tag) > 0.3
             )
             """,
             countQuery = """

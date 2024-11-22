@@ -238,8 +238,7 @@ public class NoteService {
         // fetch all distinct tag content from db
         List<String> tags = noteMapper.findAllTags();
         // convert to set to remove duplicate:
-        Set<String> distinctTags = new HashSet<>(tags);
-        return distinctTags;
+        return new HashSet<>(tags);
     }
 
     public void deleteNote(String token, String noteId) {
