@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: Hellochixiyu07!
       POSTGRES_DB: igibgo
     volumes:
-      - ./postgres-data:/var/lib/postgresql/data
+      - /home/database/postgres/postgres-data:/var/lib/postgresql/data
     ports:
       - "5000:5432"
     networks:
