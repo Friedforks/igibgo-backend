@@ -1,6 +1,8 @@
 spring:
   application:
     name: igibgo
+  config:
+    import: application-secrets.yaml
   output:
     ansi:
       enabled: always
@@ -8,18 +10,13 @@ spring:
     redis:
       host: igibgo.cloud
       port: 5002
-      password: Hellochixiyu07!
   datasource:
-    username: postgres
-    password: Hellochixiyu07!
     #    url: jdbc:postgresql://igibgo.cloud:5000/igibgo?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
     url: jdbc:postgresql://igibgo.cloud:5000/igibgo_dev?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
     driver-class-name: org.postgresql.Driver
   mail:
     host: smtp.qq.com
     port: 587
-    username: 2980364872@qq.com
-    password: tfuimtvvkamddeac
     properties.mail.smtp:
       auth: true
       starttls:
@@ -38,27 +35,17 @@ server:
   tomcat:
     max-swallow-size: -1
 
-cos:
-  secretId:
-    AKIDUrF3d1B6mDOIxMVPYUCerqa6QIyWzjFb
-  secretKey:
-    OdeQwDF0YrwlKs6MXWIrCMK7h2DDzWpu
-  bucketName:
-    #    igibgo-bucket-1303865496
-    myoss-1303865496
-  publicAccessUrl:
-    #        "https://igibgo-bucket-1303865496.cos.ap-shanghai.myqcloud.com"
-    "https://myoss-1303865496.cos.accelerate.myqcloud.com"
-
 util:
-  #  tmpDir: "/tmpdir"
-  tmpDir: "C:/Users/Chixiyu/Downloads/tmpdir"
+    tmpDir: "/home/asdf/Downloads/tmpdir"
+#  tmpDir: "C:/Users/Chixiyu/Downloads/tmpdir"
 
 
 # deployment
 #spring:
 #  application:
 #    name: igibgo
+#  config:
+#    import: application-secrets.yaml
 #  data:
 #    redis:
 #      host: ${SPRING_REDIS_HOST:redis_db}
