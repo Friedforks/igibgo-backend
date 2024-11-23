@@ -224,7 +224,7 @@ public class PostService {
         if (postOptional.isEmpty()) {
             throw new IllegalArgumentException("Post does not exist");
         }
-        return postReplyMapper.findAllByPostPostIdAndParentReplyIsNull(postId);
+        return postReplyMapper.findAllByPostPostIdAndParentReplyIsNullOrderByReplyDateDesc(postId);
     }
 
     public List<PostReply> getChildReplies(Long postReplyId) {

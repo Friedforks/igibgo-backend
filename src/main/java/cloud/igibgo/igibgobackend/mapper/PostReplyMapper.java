@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 public interface PostReplyMapper extends JpaRepository<PostReply, Long> {
-    List<PostReply> findAllByPostPostIdAndParentReplyIsNull(String postId);
+    List<PostReply> findAllByPostPostIdAndParentReplyIsNullOrderByReplyDateDesc(String postId);
 
     @Query("select pr from PostReply pr where pr.parentReply.postReplyId=:postReplyId")
     List<PostReply> findAllByParentReplyPostReplyId(Long postReplyId);
